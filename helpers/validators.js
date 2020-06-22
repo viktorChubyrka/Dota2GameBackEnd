@@ -1,8 +1,8 @@
 const isEmpty = (str) => {
   if (str === undefined || str === "") {
-    return false;
+    return true;
   }
-  return true;
+  return false;
 };
 
 const isPasswordValid = (password) => {
@@ -23,3 +23,5 @@ const isSame = (first, second) => {
   }
   return false;
 };
+
+module.exports = { isEmailValid, isSame, isPasswordValid, isEmpty };
