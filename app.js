@@ -10,6 +10,8 @@ app.use(cors());
 app.use(bodyParser.json({ limit: "500kb" }));
 app.use(bodyParser.urlencoded({ extended: false }));
 
+app.use;
+
 app.use("/", routes);
 
 module.exports = app;

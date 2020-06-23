@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const { strict } = require("assert");
 const Schema = mongoose.Schema;
 
 const userSchema = new Schema({
@@ -9,6 +8,11 @@ const userSchema = new Schema({
   dotaID: Number,
   alphaAccount: Boolean,
   promoCode: String,
+  blocked: Boolean,
+  lastActive: Date,
+  purse: Number,
+  matches: Array,
+  friendsInvited: Number,
 });
 
 module.exports = mongoose.model("Users", userSchema);

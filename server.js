@@ -5,7 +5,7 @@ const dbConnect = require("./db");
 
 (async () => {
   const app = require("./app");
-  dbConnect.func();
+  dbConnect.connect();
 
   const httpServer = http.createServer(app);
 

@@ -1,9 +1,11 @@
 const saveToDB = require("./saveToDB");
 const User = require("../../db/models/user");
 const validation = require("../../helpers/validators");
+const setInvite = require("./friendInvited");
+const randomPromoCode = require("../../helpers/randomPromoCode");
 
 async function registerUser(form) {
-  const { login, email, password, dotaID } = form;
+  const { login, email, password, promoCode } = form;
   if (
     validation.isEmpty(login) ||
     validation.isEmpty(email) ||
@@ -26,15 +28,22 @@ async function registerUser(form) {
     return {
       data: { status: 404, message: "Email is already used" },
     };
-
+  let date = new Date();
   const userObj = {
     login,
     email,
     password,
-    dotaID,
     alphaAccount: true,
-    promoCode: "dsa",
+    promoCode: randomPromoCode(),
+    blocked: false,
+    lastActive: date,
+    purse: 0,
+    matches: [],
+    friendsInvited: 0,
   };
+  if (promoCode) {
+    setInvite(promoCode);
+  }
   await saveToDB(userObj);
 
   return {
