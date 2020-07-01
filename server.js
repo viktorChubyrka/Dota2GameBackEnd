@@ -10,5 +10,5 @@ const dbConnect = require("./db");
   const httpServer = http.createServer(app);
 
   httpServer.listen(config.PORT || 5000);
-  console.log(`App listen ${config.PORT}`);
+  console.log(`App listen ${config.PORT || 5000}`);
 })();
