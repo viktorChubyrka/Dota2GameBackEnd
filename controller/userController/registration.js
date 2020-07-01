@@ -5,14 +5,23 @@ const setInvite = require("./friendInvited");
 const randomPromoCode = require("../../helpers/randomPromoCode");
 
 async function registerUser(form) {
-  const { login, email, password, promoCode } = form;
+  const { login, email, password, cpassword, promoCode } = form;
   if (
     validation.isEmpty(login) ||
     validation.isEmpty(email) ||
-    validation.isEmpty(password)
+    validation.isEmpty(password) ||
+    validation.isEmpty(cpassword)
   )
     return {
-      data: { status: 404, message: "All fealds are requred" },
+      data: { status: 404, message: "First 4 fealds are requred" },
+    };
+  if (!validation.isSame(password, cpassword))
+    return {
+      data: { status: 404, message: "Password mismatch" },
+    };
+  if (!validation.isPasswordValid(password))
+    return {
+      data: { status: 404, message: "Password must by 8 or more symbols long" },
     };
   if (!validation.isEmailValid(email))
     return {
