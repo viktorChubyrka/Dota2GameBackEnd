@@ -22,7 +22,7 @@ module.exports = Object.freeze({
   NODE_ENV,
 
   HOST: ENV.HOST || "127.0.0.1",
-  PORT: ENV.PORT ? +ENV.PORT : 4040,
+  PORT: ENV.PORT || 4040,
 
   MONGO_DB_URL: ENV.MONGO_DB_URL,
   MONGO_DB_NAME: ENV.MONGO_DB_NAME,
