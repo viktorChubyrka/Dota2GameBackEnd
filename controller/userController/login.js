@@ -18,7 +18,7 @@ async function loginUser(form) {
       data: { status: 404, message: "Wrong password" },
     };
   return {
-    data: { status: 200, message: "Logined" },
+    data: { status: 200, message: "Logined", login },
   };
 }
 

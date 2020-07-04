@@ -11,7 +11,9 @@ router.post("/registration", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   let login = await userController.login(req.body);
-  if (login.data.status == 200) req.session.login = login;
+  if (login.data.status == 200) req.session.login = req.body.login;
+  console.log(req.session.login);
+  console.log(req.session.id);
   res.send(login);
 });
 

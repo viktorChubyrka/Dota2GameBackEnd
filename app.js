@@ -7,7 +7,12 @@ const app = express();
 const session = require("express-session");
 const MongoStore = require("connect-mongo")(session);
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:8080",
+    credentials: true,
+  })
+);
 app.use(bodyParser.json({ limit: "500kb" }));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(
