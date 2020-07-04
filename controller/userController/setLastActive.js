@@ -6,7 +6,7 @@ async function setLastActive(login) {
   if (userModel) {
     userModel.lastActive = new Date();
 
-    let updatedUser = await User.updateOne({ login }, { $set: userModel });
+    await User.updateOne({ login }, { $set: userModel });
     return true;
   }
   return false;

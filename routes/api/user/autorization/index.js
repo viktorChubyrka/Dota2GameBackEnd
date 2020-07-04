@@ -11,7 +11,12 @@ router.post("/registration", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   let login = await userController.login(req.body);
+  if (login.data.status == 200) req.session.login = login;
   res.send(login);
 });
 
+router.get("/logOut", async (req, res) => {
+  req.session.destroy();
+  res.send({ status: "200" });
+});
 module.exports = router;
