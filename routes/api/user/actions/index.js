@@ -5,16 +5,35 @@ const emailSender = require("../../../../helpers/emailSender");
 
 const router = express.Router();
 
-router.get("/getUsers", async (req, res) => {
-  let allUsers = await userController.getAllUsers(req);
-  res.send(allUsers);
-});
-
 router.post("/getUserData", async (req, res) => {
-  console.log(req.session.login);
   if (req.session.login) {
     let userData = await userController.getUserData(req.body.login);
     res.send(userData);
+  } else {
+    let data = {
+      status: "404",
+      message: "No session",
+    };
+    res.send({ data });
+  }
+});
+router.post("/changeName", async (req, res) => {
+  console.log("sadsa");
+  if (req.session.login) {
+    let newUserData = await userController.changeName(req.body);
+    res.send(newUserData);
+  } else {
+    let data = {
+      status: "404",
+      message: "No session",
+    };
+    res.send({ data });
+  }
+});
+router.post("/changeContactInfo", async (req, res) => {
+  if (req.session.login) {
+    let newUserData = await userController.changeContactInfo(req.body);
+    res.send(newUserData);
   } else {
     let data = {
       status: "404",

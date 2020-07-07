@@ -3,5 +3,15 @@ const registration = require("./registration");
 const getAllUsers = require("./getAllUsers");
 const newPassword = require("./newPassword");
 const getUserData = require("./getUserData");
+const changeName = require("./changeName");
+const changeContactInfo = require("./changeContactInfo");
 
-module.exports = { login, registration, getAllUsers, newPassword, getUserData };
+module.exports = {
+  login,
+  registration,
+  getAllUsers,
+  newPassword,
+  getUserData,
+  changeName,
+  changeContactInfo,
+};
