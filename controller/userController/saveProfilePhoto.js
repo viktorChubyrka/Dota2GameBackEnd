@@ -1,5 +1,4 @@
 const User = require("../../db/models/user");
-const fs = require("fs");
 
 async function saveProfilePhoto(link, login) {
   let userModel = await User.findOne({ login });
