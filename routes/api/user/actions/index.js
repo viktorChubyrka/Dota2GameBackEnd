@@ -70,10 +70,5 @@ router.post("/newPassword", async (req, res) => {
   let data = await userController.newPassword(email, password, cpassword);
   res.send(data);
 });
-router.post("/sendFile", async function (req, res, next) {
-  let filedata = req.file;
-  if (!filedata) res.send("Ошибка при загрузке файла");
-  else res.send("Файл загружен");
-});
 
 module.exports = router;
