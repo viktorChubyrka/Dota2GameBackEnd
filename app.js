@@ -10,6 +10,7 @@ const MongoStore = require("connect-mongo")(session);
 app.use(
   cors({
     origin: "https://dota2gamebot.herokuapp.com/",
+
     credentials: true,
   })
 );
