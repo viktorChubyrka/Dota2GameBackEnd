@@ -18,7 +18,7 @@ const router = express.Router();
 
 var type = upload.single("file");
 router.post("/sendFile", type, async function (req, res) {
-  let path = "http://localhost:3000/" + req.file.filename;
+  let path = "https://dota2botbackend.herokuapp.com/" + req.file.filename;
   await userController.saveProfilePhoto(path, req.body.login);
 });
 
