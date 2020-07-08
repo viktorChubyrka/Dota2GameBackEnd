@@ -1,9 +1,26 @@
 const express = require("express");
+var multer = require("multer");
+var storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/");
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + ".jpg"); //Appending .jpg
+  },
+});
+
+var upload = multer({ storage: storage });
 
 const userController = require("../../../../controller/userController");
 const emailSender = require("../../../../helpers/emailSender");
 
 const router = express.Router();
+
+var type = upload.single("file");
+router.post("/sendFile", type, async function (req, res) {
+  let path = "http://localhost:3000/" + req.file.filename;
+  await userController.saveProfilePhoto(path, req.body.login);
+});
 
 router.post("/getUserData", async (req, res) => {
   if (req.session.login) {
@@ -52,6 +69,11 @@ router.post("/newPassword", async (req, res) => {
   let { email, password, cpassword } = req.body;
   let data = await userController.newPassword(email, password, cpassword);
   res.send(data);
+});
+router.post("/sendFile", async function (req, res, next) {
+  let filedata = req.file;
+  if (!filedata) res.send("Ошибка при загрузке файла");
+  else res.send("Файл загружен");
 });
 
 module.exports = router;

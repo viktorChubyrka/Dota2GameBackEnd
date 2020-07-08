@@ -9,10 +9,12 @@ const MongoStore = require("connect-mongo")(session);
 
 app.use(
   cors({
-    origin: "https://dota2gamebot.herokuapp.com",
+    origin: "https://dota2gamebot.herokuapp.com/",
     credentials: true,
   })
 );
+
+app.use(express.static("uploads"));
 app.use(bodyParser.json({ limit: "500kb" }));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(
@@ -23,7 +25,6 @@ app.use(
     secret: config.SECRET,
   })
 );
-app.use;
 
 app.use("/", routes);
 
