@@ -21,4 +21,5 @@ router.get("/logOut", async (req, res) => {
   req.session.destroy();
   res.send({ status: "200" });
 });
+
 module.exports = router;

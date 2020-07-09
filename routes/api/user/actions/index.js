@@ -34,6 +34,13 @@ router.post("/getUserData", async (req, res) => {
     res.send({ data });
   }
 });
+router.post("/", async (req, res) => {
+  console.log(req.session.login);
+  if (req.session.login) {
+    res.send("200");
+  }
+  res.send("400");
+});
 router.post("/changeName", async (req, res) => {
   console.log("sadsa");
   if (req.session.login) {
