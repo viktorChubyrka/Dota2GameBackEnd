@@ -12,7 +12,7 @@ var clients = {};
 
   const WebSocket = require("ws");
 
-  const wss = new WebSocket.Server({ noServer: true });
+  const wss = new WebSocket.Server({ server: httpServer });
 
   wss.on("connection", function connection(ws) {
     var id = Math.random();
