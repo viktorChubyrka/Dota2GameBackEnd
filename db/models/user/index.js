@@ -32,6 +32,10 @@ const userSchema = new Schema({
     type: Array,
     default: [],
   },
+  friends: {
+    type: Array,
+    default: [],
+  },
   friendsInvited: {
     type: Number,
     default: 0,
@@ -43,6 +47,10 @@ const userSchema = new Schema({
   surname: {
     type: String,
     default: "",
+  },
+  notifications: {
+    type: Array,
+    default: [],
   },
 });
 

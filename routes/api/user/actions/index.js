@@ -5,7 +5,7 @@ var storage = multer.diskStorage({
     cb(null, "uploads/");
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + ".jpg"); //Appending .jpg
+    cb(null, Date.now() + ".jpg");
   },
 });
 
@@ -21,6 +21,18 @@ router.post("/sendFile", type, async function (req, res) {
   let path = "https://dota2botbackend.herokuapp.com/" + req.file.filename;
   await userController.saveProfilePhoto(path, req.body.login);
 });
+router.get("/getAllUsers", async (req, res) => {
+  if (req.session.login) {
+    let users = await userController.getAllUsers(req.session.login);
+    res.send({ status: "200", users });
+  } else {
+    let data = {
+      status: "404",
+      message: "No session",
+    };
+    res.send({ data });
+  }
+});
 
 router.post("/getUserData", async (req, res) => {
   if (req.session.login) {
@@ -35,7 +47,6 @@ router.post("/getUserData", async (req, res) => {
   }
 });
 router.post("/", async (req, res) => {
-  console.log(req.session.login);
   if (req.session.login) {
     res.send("200");
   }

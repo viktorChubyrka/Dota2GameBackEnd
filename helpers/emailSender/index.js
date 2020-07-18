@@ -1,5 +1,4 @@
 const nodemailer = require("nodemailer");
-const { getMaxListeners } = require("process");
 
 async function sendEmail(email) {
   var from = "Darevins Club <clubfordarv@gmail.com>";
