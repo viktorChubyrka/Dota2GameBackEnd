@@ -3,16 +3,17 @@ const User = require("../../db/models/user");
 
 let AddFriendNotification = async (login, userTooAdd) => {
   let userTooAddFriend = await User.findOne({ login: userTooAdd });
-  //   let allReadyNotificated = false;
-  //   userTooAddFriend.notifications.forEach((el) => {
-  //     if (el.login == login) allReadyNotificated = true;
-  //   });
-  //   if (!allReadyNotificated)
-  userTooAddFriend.notifications.push({
-    date: new Date(),
-    login,
-    type: "AddTooFriends",
+  let allReadyNotificated = false;
+  userTooAddFriend.notifications.forEach((el) => {
+    if (el.login == login && el.type == "AddTooFriends")
+      allReadyNotificated = true;
   });
+  if (!allReadyNotificated)
+    userTooAddFriend.notifications.push({
+      date: new Date(),
+      login,
+      type: "AddTooFriends",
+    });
   await User.updateOne({ login: userTooAdd }, { $set: userTooAddFriend });
 };
 let AcceptFriend = async (login, friendLogin) => {
@@ -42,13 +43,18 @@ let AcceptFriend = async (login, friendLogin) => {
 let notAcceptFriend = async (login, friendLogin) => {
   let user1 = await User.findOne({ login });
   let user2 = await User.findOne({ login: friendLogin });
-  user1.notifications = [];
+  user1.notifications.forEach((el, index) => {
+    console.log(el.login == friendLogin && el.type == "AddTooFriends");
+    if (el.login == friendLogin && el.type == "AddTooFriends")
+      user1.notifications.splice(index, 1);
+  });
+
   await User.updateOne({ login }, { $set: user1 });
   user2.notifications.push({
     date: new Date(),
     login,
     message: "Отклонил заявку в друзья",
-    type: "AcceptFriend",
+    type: "notAcceptFriend",
   });
   await User.updateOne({ login: friendLogin }, { $set: user2 });
 };
