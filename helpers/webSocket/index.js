@@ -25,7 +25,6 @@ let AcceptFriend = async (login, friendLogin) => {
   if (!isInFrends) user1.friends.push(friendLogin);
   isInFrends = false;
   user1.notifications = [];
-  console.log(user1);
   await User.updateOne({ login }, { $set: user1 });
   user2.friends.forEach((el) => {
     if (el == login) isInFrends = true;
@@ -38,6 +37,20 @@ let AcceptFriend = async (login, friendLogin) => {
     type: "AcceptFriend",
   });
   console.log(user2);
+  await User.updateOne({ login: friendLogin }, { $set: user2 });
+};
+let notAcceptFriend = async (login, friendLogin) => {
+  let user1 = await User.findOne({ login });
+  let user2 = await User.findOne({ login: friendLogin });
+  user1.notifications = [];
+  await User.updateOne({ login }, { $set: user1 });
+  console.log(user1);
+  user2.notifications.push({
+    date: new Date(),
+    login,
+    message: "Отклонил заявку в друзья",
+    type: "AcceptFriend",
+  });
   await User.updateOne({ login: friendLogin }, { $set: user2 });
 };
 var clients = {};
@@ -71,10 +84,24 @@ module.exports = async (ws) => {
             clients[key].login == data.friendLogin ||
             clients[key].login == data.login
           )
-            console.log(key);
+            clients[key].send(
+              JSON.stringify({
+                type: "AcceptFriend",
+              })
+            );
+        }
+        break;
+      case "notAcceptFriend":
+        notAcceptFriend(data.login, data.friendLogin);
+        for (var key in clients) {
+          if (
+            clients[key].login == data.friendLogin ||
+            clients[key].login == data.login
+          )
+            console.log("ghbikj");
           clients[key].send(
             JSON.stringify({
-              type: "AcceptFriend",
+              type: "notAcceptFriend",
             })
           );
         }
