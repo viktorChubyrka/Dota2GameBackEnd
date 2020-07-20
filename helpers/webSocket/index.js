@@ -24,8 +24,10 @@ let AcceptFriend = async (login, friendLogin) => {
     if (el == friendLogin) isInFrends = true;
   });
   if (!isInFrends) user1.friends.push(friendLogin);
-  isInFrends = false;
-  user1.notifications = [];
+  user1.notifications.forEach((el, index) => {
+    if (el.login == friendLogin && el.type == "AddTooFriends")
+      user1.notifications.splice(index, 1);
+  });
   await User.updateOne({ login }, { $set: user1 });
   user2.friends.forEach((el) => {
     if (el == login) isInFrends = true;
