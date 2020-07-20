@@ -3,16 +3,16 @@ const User = require("../../db/models/user");
 
 let AddFriendNotification = async (login, userTooAdd) => {
   let userTooAddFriend = await User.findOne({ login: userTooAdd });
-  let allReadyNotificated = false;
-  userTooAddFriend.notifications.forEach((el) => {
-    if (el.login == login) allReadyNotificated = true;
+  //   let allReadyNotificated = false;
+  //   userTooAddFriend.notifications.forEach((el) => {
+  //     if (el.login == login) allReadyNotificated = true;
+  //   });
+  //   if (!allReadyNotificated)
+  userTooAddFriend.notifications.push({
+    date: new Date(),
+    login,
+    type: "AddTooFriends",
   });
-  if (!allReadyNotificated)
-    userTooAddFriend.notifications.push({
-      date: new Date(),
-      login,
-      type: "AddTooFriends",
-    });
   await User.updateOne({ login: userTooAdd }, { $set: userTooAddFriend });
 };
 let AcceptFriend = async (login, friendLogin) => {
@@ -44,7 +44,6 @@ let notAcceptFriend = async (login, friendLogin) => {
   let user2 = await User.findOne({ login: friendLogin });
   user1.notifications = [];
   await User.updateOne({ login }, { $set: user1 });
-  console.log(user1);
   user2.notifications.push({
     date: new Date(),
     login,
@@ -60,7 +59,6 @@ module.exports = async (ws) => {
   console.log("новое соединение " + id);
   ws.on("message", function (message) {
     let data = JSON.parse(message);
-
     switch (data.type) {
       case "join":
         clients[id].login = data.data;
@@ -98,12 +96,11 @@ module.exports = async (ws) => {
             clients[key].login == data.friendLogin ||
             clients[key].login == data.login
           )
-            console.log("ghbikj");
-          clients[key].send(
-            JSON.stringify({
-              type: "notAcceptFriend",
-            })
-          );
+            clients[key].send(
+              JSON.stringify({
+                type: "notAcceptFriend",
+              })
+            );
         }
         break;
       default:
