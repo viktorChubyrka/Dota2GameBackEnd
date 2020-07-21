@@ -1,5 +1,4 @@
 const User = require("../../db/models/user");
-const { forEach } = require("lodash");
 
 async function getAllUsers(userLogin) {
   let allUsers = await User.find();
