@@ -2,6 +2,62 @@ const { cli } = require("winston/lib/winston/config");
 const User = require("../../db/models/user");
 const Match = require("../../db/models/match");
 
+let enterLobby = async (matchNumber, login) => {
+  let AllMatches = await Match.find();
+  let isInMatch = false;
+  AllMatches.forEach((el) => {
+    if (el.playersT1.includes(login) || el.playersT2.includes(login)) {
+      isInMatch = true;
+    }
+  });
+
+  if (!isInMatch) {
+    let match = await Match.findOne({ matchNumber });
+    if (match.playersT1.length < 5) match.playersT1.push(login);
+    else if (match.playersT2.length < 5) match.playersT2.push(login);
+    await Match.updateOne({ matchNumber }, { $set: match });
+  }
+};
+
+let leaveFromLobby = async (matchNumber, login) => {
+  let matchToLeave = await Match.findOne({ matchNumber });
+  if ([...matchToLeave.playersT1, ...matchToLeave.playersT2].length == 1) {
+    await Match.deleteOne({ matchNumber });
+  } else {
+    let index = 0;
+    if (matchToLeave.playersT1.includes(login)) {
+      index = matchToLeave.playersT1.indexOf(login);
+      matchToLeave.playersT1.splice(index, 1);
+    } else {
+      index = matchToLeave.playersT2.indexOf(login);
+      matchToLeave.playersT2.splice(index, 1);
+    }
+    await Match.updateOne({ matchNumber }, { $set: matchToLeave });
+  }
+};
+
+let destroyLobby = async (creatorLogin) => {
+  let lobbyToDelete = await Match.findOne({ creatorLogin });
+  await Match.deleteOne({ creatorLogin });
+  let users = [];
+  let logins = [...lobbyToDelete.playersT2, ...lobbyToDelete.playersT1];
+  for (let i = 0; i < logins.length; i++) {
+    let user = await User.findOne({ login: logins[i] });
+    users.push(user);
+    console.log(user);
+  }
+  console.log(users, "asdsa");
+  users.forEach(async (el) => {
+    el.notifications.push({
+      date: new Date(),
+      message: "Лобби розпущено",
+      type: "LobbyDestroed",
+    });
+    await User.updateOne({ login: el.login }, { $set: el });
+  });
+  return logins;
+};
+
 let addToLobby = async (login) => {
   let matches = await Match.find();
   let playerCount = 0;
@@ -42,7 +98,6 @@ let addToLobby = async (login) => {
       for (let i = 0; i < 10; i++) {
         matchNumber = matchNumber + Math.floor(Math.random() * Math.floor(10));
       }
-      console.log(matchNumber);
       let newMatch = new Match({
         creatorLogin: login,
         playersT1: [login],
@@ -52,11 +107,8 @@ let addToLobby = async (login) => {
         status: "upcoming",
       });
       let a = await newMatch.save();
-      console.log(a);
     }
   }
-
-  console.log(matches);
 };
 
 let AddFriendNotification = async (login, userTooAdd) => {
@@ -126,6 +178,47 @@ module.exports = async (ws) => {
   ws.on("message", function (message) {
     let data = JSON.parse(message);
     switch (data.type) {
+      case "EnterLobby":
+        enterLobby(data.matchNumber, data.login);
+        for (var key in clients) {
+          clients[key].send(
+            JSON.stringify({
+              type: "LobbyUpdate",
+            })
+          );
+        }
+        break;
+      case "LeaveLobby":
+        leaveFromLobby(data.matchNumber, data.login);
+        for (var key in clients) {
+          clients[key].send(
+            JSON.stringify({
+              type: "LobbyUpdate",
+            })
+          );
+        }
+        break;
+      case "DestroyParty":
+        console.log(data.login);
+        let logins = destroyLobby(data.login);
+        for (let i = 0; i < logins.length; i++) {
+          for (var key in clients) {
+            if (logins[i] == clients[key].login)
+              clients[key].send(
+                JSON.stringify({
+                  type: "LobbyDestroyed",
+                })
+              );
+          }
+        }
+        for (var key in clients) {
+          clients[key].send(
+            JSON.stringify({
+              type: "LobbyUpdate",
+            })
+          );
+        }
+        break;
       case "SearchGame":
         addToLobby(data.login);
         for (var key in clients) {
