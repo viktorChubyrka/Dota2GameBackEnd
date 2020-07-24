@@ -5,7 +5,7 @@ async function getParty(partryId) {
   if (party) {
     return party;
   } else {
-    return false;
+    return party;
   }
 }
 

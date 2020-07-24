@@ -2,7 +2,6 @@ const User = require("../../db/models/user");
 const Match = require("../../db/models/match");
 const Party = require("../../db/models/party");
 const partyController = require("../../controller/partyController");
-const { log } = require("winston");
 
 let enterLobby = async (matchNumber, login) => {
   let AllMatches = await Match.find();
@@ -117,7 +116,6 @@ let AddPartyNotification = async (login, friendLogin, partyId) => {
   if (partyId) party = await Party.findOne({ _id: partyId });
   let user = await User.findOne({ login });
   let friend = await User.findOne({ login: friendLogin });
-  console.log(party);
   if (party) {
     let allreadyInParty = false;
     party.players.forEach((el) => {
@@ -138,7 +136,9 @@ let AddPartyNotification = async (login, friendLogin, partyId) => {
         partyID: partyId,
       });
     }
+    await User.updateOne({ login: friendLogin }, { $set: friend });
     await Party.updateOne({ _id: partyId }, { $set: party });
+    return partyId;
   } else {
     party = new Party({
       creatorLogin: login,
@@ -155,11 +155,12 @@ let AddPartyNotification = async (login, friendLogin, partyId) => {
       type: "AddTooParty",
       partyID: newParty._id,
     });
-
     user.partyID = newParty._id;
+    await User.updateOne({ login: friendLogin }, { $set: friend });
+    await User.updateOne({ login }, { $set: user });
+    let partyID = newParty._id;
+    return partyID;
   }
-  await User.updateOne({ login: friendLogin }, { $set: friend });
-  await User.updateOne({ login }, { $set: user });
 };
 let AddFriendNotification = async (login, userTooAdd) => {
   let userTooAddFriend = await User.findOne({ login: userTooAdd });
@@ -274,53 +275,65 @@ module.exports = async (ws) => {
   var id = Math.random();
   clients[id] = ws;
   console.log("новое соединение " + id);
-  ws.on("message", function (message) {
+  await ws.on("message", async function (message) {
     let data = JSON.parse(message);
     switch (data.type) {
       case "AddToParty":
-        AddPartyNotification(data.login, data.friendLogin, data.lobby);
+        let IDparty = await AddPartyNotification(
+          data.login,
+          data.friendLogin,
+          data.lobby
+        );
+        console.log(IDparty);
         for (var key in clients) {
-          if (
-            clients[key].login == data.friendLogin ||
-            clients[key].login == data.login
-          )
+          if (clients[key].login == data.login)
             clients[key].send(
               JSON.stringify({
                 type: "PartyUpdate",
+                party: IDparty,
+              })
+            );
+          if (clients[key].login == data.friendLogin)
+            clients[key].send(
+              JSON.stringify({
+                type: "PartyUpdate",
+                party: "",
               })
             );
         }
         break;
       case "AcceptParty":
-        AcceptParty(data.login, data.friendLogin, data.partyID);
+        await AcceptParty(data.login, data.friendLogin, data.partyID);
         for (var key in clients) {
           if (
-            clients[key].login == data.friendLogin ||
-            clients[key].login == data.login
+            clients[key].login == data.login ||
+            clients[key].login == data.friendLogin
           )
             clients[key].send(
               JSON.stringify({
                 type: "PartyUpdate",
+                party: data.partyID,
               })
             );
         }
         break;
       case "notAcceptParty":
-        notAcceptParty(data.login, data.friendLogin, data.partyID);
+        await notAcceptParty(data.login, data.friendLogin, data.partyID);
         for (var key in clients) {
           if (
-            clients[key].login == data.friendLogin ||
-            clients[key].login == data.login
+            clients[key].login == data.login ||
+            clients[key].login == data.friendLogin
           )
             clients[key].send(
               JSON.stringify({
                 type: "PartyUpdate",
+                party: data.partyID,
               })
             );
         }
         break;
       case "EnterLobby":
-        enterLobby(data.matchNumber, data.login);
+        await enterLobby(data.matchNumber, data.login);
         for (var key in clients) {
           if (clients[key].login == data.login)
             clients[key].send(
@@ -337,7 +350,7 @@ module.exports = async (ws) => {
         }
         break;
       case "LeaveLobby":
-        leaveFromLobby(data.matchNumber, data.login);
+        await leaveFromLobby(data.matchNumber, data.login);
         for (var key in clients) {
           if (clients[key].login == data.login)
             clients[key].send(
@@ -355,7 +368,7 @@ module.exports = async (ws) => {
         break;
       case "DestroyLobby":
         console.log(data.login);
-        let logins = destroyLobby(data.login);
+        let logins = await destroyLobby(data.login);
         for (let i = 0; i < logins.length; i++) {
           for (var key in clients) {
             if (logins[i] == clients[key].login)
@@ -376,7 +389,7 @@ module.exports = async (ws) => {
         }
         break;
       case "SearchGame":
-        addToLobby(data.login);
+        await addToLobby(data.login);
         for (var key in clients) {
           if (clients[key].login == data.login)
             clients[key].send(
@@ -412,7 +425,7 @@ module.exports = async (ws) => {
         break;
       case "AddFriend":
         console.log("sdsa");
-        AddFriendNotification(data.login, data.userToAdd);
+        await AddFriendNotification(data.login, data.userToAdd);
         for (var key in clients) {
           if (clients[key].login == data.userToAdd)
             clients[key].send(
@@ -423,7 +436,7 @@ module.exports = async (ws) => {
         }
         break;
       case "AcceptFriend":
-        AcceptFriend(data.login, data.friendLogin);
+        await AcceptFriend(data.login, data.friendLogin);
         for (var key in clients) {
           if (
             clients[key].login == data.friendLogin ||
@@ -437,7 +450,7 @@ module.exports = async (ws) => {
         }
         break;
       case "notAcceptFriend":
-        notAcceptFriend(data.login, data.friendLogin);
+        await notAcceptFriend(data.login, data.friendLogin);
         for (var key in clients) {
           if (
             clients[key].login == data.friendLogin ||
