@@ -135,6 +135,7 @@ let AddPartyNotification = async (login, friendLogin, partyId) => {
         login,
         message: "Приглашение в лобби",
         type: "AddTooParty",
+        partyID: partyId,
       });
     }
     await Party.updateOne({ _id: partyId }, { $set: party });
@@ -152,6 +153,7 @@ let AddPartyNotification = async (login, friendLogin, partyId) => {
       login,
       message: "Приглашение в лобби",
       type: "AddTooParty",
+      partyID: newParty._id,
     });
 
     user.partyID = newParty._id;
@@ -218,58 +220,54 @@ let notAcceptFriend = async (login, friendLogin) => {
   });
   await User.updateOne({ login: friendLogin }, { $set: user2 });
 };
-let AcceptParty = async (login, friendLogin) => {
-  let user2 = await User.findOne({ login });
-  let user1 = await User.findOne({ login: friendLogin });
-  let party = await Party.findOne({ creatorLogin: friendLogin });
-  let isInParty = false;
-  if (party) {
-    party.players.forEach((el) => {
-      if (el.login == friendLogin) isInParty = true;
-    });
-    if (!isInParty)
-      if (party.players.length < 5) party.players.push(friendLogin);
-  } else {
-    party = new Party({
-      creatorLogin: friendLogin,
-      players: [
-        { login, ready: false },
-        { login: friendLogin, ready: false },
-      ],
-    });
-    console.log(party);
-    await party.save();
-  }
-  user2.notifications.forEach((el, index) => {
-    if (el.login == friendLogin && el.type == "AddTooParty")
-      user2.notifications.splice(index, 1);
-  });
-  await User.updateOne({ login }, { $set: user2 });
+let AcceptParty = async (login, friendLogin, partyID) => {
+  let user = await User.findOne({ login });
+  let friend = await User.findOne({ login: friendLogin });
+  let party = await Party.findOne({ _id: partyID });
+  console.log(party);
 
-  user1.notifications.push({
+  party.players.forEach((el) => {
+    if (el.login == login) el.status = "inLobby";
+  });
+  console.log(party);
+  user.notifications.forEach((el, index) => {
+    if (el.login == friendLogin && el.type == "AddTooParty")
+      user.notifications.splice(index, 1);
+  });
+  user.partyID = partyID;
+  await User.updateOne({ login }, { $set: user });
+
+  friend.notifications.push({
     date: new Date(),
     login,
     message: "Приcоединился к лобби",
     type: "AcceptLobby",
   });
 
-  await User.updateOne({ login: friendLogin }, { $set: user1 });
+  await User.updateOne({ login: friendLogin }, { $set: friend });
+  let a = await Party.updateOne({ _id: partyID }, { $set: party });
+  console.log(a);
 };
-let notAcceptParty = async (login, friendLogin) => {
-  let user1 = await User.findOne({ login });
-  let user2 = await User.findOne({ login: friendLogin });
-  user2.notifications.forEach((el, index) => {
-    if (el.login == friendLogin && el.type == "AddTooParty")
-      user1.notifications.splice(index, 1);
+let notAcceptParty = async (login, friendLogin, partyID) => {
+  let user = await User.findOne({ login });
+  let friend = await User.findOne({ login: friendLogin });
+  let party = await Party.findOne({ _id: partyID });
+  party.players.forEach((el, index) => {
+    if (el.login == login) party.players.splice(index, 1);
   });
-  await User.updateOne({ friendLogin }, { $set: user2 });
-  user1.notifications.push({
+  await Party.updateOne({ _id: partyID }, { $set: party });
+  user.notifications.forEach((el, index) => {
+    if (el.login == friendLogin && el.type == "AddTooParty")
+      user.notifications.splice(index, 1);
+  });
+  await User.updateOne({ login }, { $set: user });
+  friend.notifications.push({
     date: new Date(),
     login,
-    message: "Приглашение в пати",
-    type: "notAcceptFriend",
+    message: "Пати отклонено от",
+    type: "notAcceptParty",
   });
-  await User.updateOne({ login: login }, { $set: user1 });
+  await User.updateOne({ login: friendLogin }, { $set: friend });
 };
 var clients = {};
 module.exports = async (ws) => {
@@ -294,7 +292,7 @@ module.exports = async (ws) => {
         }
         break;
       case "AcceptParty":
-        AcceptParty(data.login, data.friendLogin);
+        AcceptParty(data.login, data.friendLogin, data.partyID);
         for (var key in clients) {
           if (
             clients[key].login == data.friendLogin ||
@@ -302,13 +300,13 @@ module.exports = async (ws) => {
           )
             clients[key].send(
               JSON.stringify({
-                type: "AcceptParty",
+                type: "PartyUpdate",
               })
             );
         }
         break;
       case "notAcceptParty":
-        notAcceptParty(data.login, data.friendLogin);
+        notAcceptParty(data.login, data.friendLogin, data.partyID);
         for (var key in clients) {
           if (
             clients[key].login == data.friendLogin ||
@@ -316,7 +314,7 @@ module.exports = async (ws) => {
           )
             clients[key].send(
               JSON.stringify({
-                type: "notAcceptParty",
+                type: "PartyUpdate",
               })
             );
         }
