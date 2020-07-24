@@ -52,6 +52,14 @@ const userSchema = new Schema({
     type: Array,
     default: [],
   },
+  partyID: {
+    type: String,
+    default: "",
+  },
+  ready: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 module.exports = mongoose.model("Users", userSchema);
