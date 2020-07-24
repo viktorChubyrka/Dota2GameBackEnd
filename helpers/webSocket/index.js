@@ -3,6 +3,39 @@ const Match = require("../../db/models/match");
 const Party = require("../../db/models/party");
 const partyController = require("../../controller/partyController");
 
+let CickFromParty = async (login, cickLogin, partyID) => {
+  let party = await Party.findOne({ _id: partyID });
+  console.log(party);
+  let user = await User.findOne({ login: cickLogin });
+  if (party.creatorLogin == login) {
+    party.players.forEach((el, index) => {
+      if (el.login == cickLogin) {
+        party.players.splice(index, 1);
+      }
+    });
+    user.partyID = "";
+    await User.updateOne({ login: cickLogin }, { $set: user });
+    await Party.updateOne({ _id: partyID }, { $set: party });
+    return party.players;
+  } else return false;
+};
+
+let LeveParty = async (login, partyID) => {
+  let party = await Party.findOne({ _id: partyID });
+  let user = await User.findOne({ login });
+  user.partyID = "";
+  party.players.forEach((el, index) => {
+    if (el.login == login) party.players.splice(index, 1);
+  });
+  let deleted = false;
+  if (party.players.length == 0) {
+    await Party.deleteOne({ _id: partyID });
+    deleted = true;
+  } else if (party.creatorLogin == login) party.creatorLogin = party.players[0];
+  if (!deleted) await Party.updateOne({ _id: partyID }, { $set: party });
+  await User.updateOne({ login }, { user });
+  return party.players;
+};
 let enterLobby = async (matchNumber, login) => {
   let AllMatches = await Match.find();
   let isInMatch = false;
@@ -45,9 +78,8 @@ let destroyLobby = async (creatorLogin) => {
   for (let i = 0; i < logins.length; i++) {
     let user = await User.findOne({ login: logins[i] });
     users.push(user);
-    console.log(user);
   }
-  console.log(users, "asdsa");
+
   users.forEach(async (el) => {
     el.notifications.push({
       date: new Date(),
@@ -200,14 +232,13 @@ let AcceptFriend = async (login, friendLogin) => {
     message: "Принял заявку в друзья",
     type: "AcceptFriend",
   });
-  console.log(user2);
+
   await User.updateOne({ login: friendLogin }, { $set: user2 });
 };
 let notAcceptFriend = async (login, friendLogin) => {
   let user1 = await User.findOne({ login });
   let user2 = await User.findOne({ login: friendLogin });
   user1.notifications.forEach((el, index) => {
-    console.log(el.login == friendLogin && el.type == "AddTooFriends");
     if (el.login == friendLogin && el.type == "AddTooFriends")
       user1.notifications.splice(index, 1);
   });
@@ -225,12 +256,11 @@ let AcceptParty = async (login, friendLogin, partyID) => {
   let user = await User.findOne({ login });
   let friend = await User.findOne({ login: friendLogin });
   let party = await Party.findOne({ _id: partyID });
-  console.log(party);
 
   party.players.forEach((el) => {
     if (el.login == login) el.status = "inLobby";
   });
-  console.log(party);
+
   user.notifications.forEach((el, index) => {
     if (el.login == friendLogin && el.type == "AddTooParty")
       user.notifications.splice(index, 1);
@@ -247,7 +277,6 @@ let AcceptParty = async (login, friendLogin, partyID) => {
 
   await User.updateOne({ login: friendLogin }, { $set: friend });
   let a = await Party.updateOne({ _id: partyID }, { $set: party });
-  console.log(a);
 };
 let notAcceptParty = async (login, friendLogin, partyID) => {
   let user = await User.findOne({ login });
@@ -284,7 +313,7 @@ module.exports = async (ws) => {
           data.friendLogin,
           data.lobby
         );
-        console.log(IDparty);
+
         for (var key in clients) {
           if (clients[key].login == data.login)
             clients[key].send(
@@ -332,6 +361,45 @@ module.exports = async (ws) => {
             );
         }
         break;
+      case "LeveParty":
+        let players = await LeveParty(data.login, data.partyID);
+        for (var key in clients) {
+          players.forEach((el) => {
+            if (
+              clients[key].login == el.login ||
+              clients[key].login == data.login
+            )
+              clients[key].send(
+                JSON.stringify({
+                  type: "PartyUpdate",
+                  party: data.partyID,
+                })
+              );
+          });
+        }
+        break;
+      case "CickPlayer":
+        let players2 = await CickFromParty(
+          data.login,
+          data.cickLogin,
+          data.partyID
+        );
+        if (players2)
+          for (var key in clients) {
+            players2.forEach((el) => {
+              if (
+                clients[key].login == el.login ||
+                clients[key].login == data.cickLogin
+              )
+                clients[key].send(
+                  JSON.stringify({
+                    type: "PartyUpdate",
+                    party: data.partyID,
+                  })
+                );
+            });
+          }
+        break;
       case "EnterLobby":
         await enterLobby(data.matchNumber, data.login);
         for (var key in clients) {
@@ -367,7 +435,6 @@ module.exports = async (ws) => {
         }
         break;
       case "DestroyLobby":
-        console.log(data.login);
         let logins = await destroyLobby(data.login);
         for (let i = 0; i < logins.length; i++) {
           for (var key in clients) {
@@ -424,7 +491,6 @@ module.exports = async (ws) => {
         }
         break;
       case "AddFriend":
-        console.log("sdsa");
         await AddFriendNotification(data.login, data.userToAdd);
         for (var key in clients) {
           if (clients[key].login == data.userToAdd)
