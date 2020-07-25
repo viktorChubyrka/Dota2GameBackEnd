@@ -2,6 +2,26 @@ const User = require("../../db/models/user");
 const Match = require("../../db/models/match");
 const Party = require("../../db/models/party");
 const partyController = require("../../controller/partyController");
+const user = require("../../db/models/user");
+
+let SetReady = async (login) => {
+  let user = await User.findOne({ login });
+  user.ready = !user.ready;
+  if (user.partyID) {
+    let party = await Party.findOne({ _id: user.partyID });
+    console.log(party);
+    if (party) {
+      party.players.forEach((el) => {
+        if (el.login == login) el.ready = !el.ready;
+      });
+      await User.updateOne({ login }, { $set: user });
+      await Party.updateOne({ _id: user.partyID }, { $set: party });
+      return { players: party.players, partyID: user.partyID };
+    }
+  }
+  await User.updateOne({ login }, { $set: user });
+  return { players: [user.login], partyID: user.partyID };
+};
 
 let CickFromParty = async (login, cickLogin, partyID) => {
   let party = await Party.findOne({ _id: partyID });
@@ -159,6 +179,7 @@ let AddPartyNotification = async (login, friendLogin, partyId) => {
         login: friend.login,
         photo: friend.photo,
         status: "waiting",
+        ready: false,
       });
       friend.notifications.push({
         date: new Date(),
@@ -175,8 +196,13 @@ let AddPartyNotification = async (login, friendLogin, partyId) => {
     party = new Party({
       creatorLogin: login,
       players: [
-        { login, photo: user.photo, status: "inLobby" },
-        { login: friendLogin, photo: friend.photo, status: "waiting" },
+        { login, photo: user.photo, status: "inLobby", ready: user.ready },
+        {
+          login: friendLogin,
+          photo: friend.photo,
+          status: "waiting",
+          ready: false,
+        },
       ],
     });
     let newParty = await party.save();
@@ -258,7 +284,10 @@ let AcceptParty = async (login, friendLogin, partyID) => {
   let party = await Party.findOne({ _id: partyID });
 
   party.players.forEach((el) => {
-    if (el.login == login) el.status = "inLobby";
+    if (el.login == login) {
+      el.status = "inLobby";
+      el.ready = user.ready;
+    }
   });
 
   user.notifications.forEach((el, index) => {
@@ -531,6 +560,8 @@ module.exports = async (ws) => {
         break;
       case "setReady":
         let ready = 0;
+        let users = await SetReady(data.login);
+        console.log(users);
         for (var key in clients) {
           if (clients[key].login == data.login)
             clients[key].ready = !clients[key].ready;
@@ -543,6 +574,17 @@ module.exports = async (ws) => {
               ready,
             })
           );
+        }
+        for (var key in clients) {
+          users.players.forEach((el) => {
+            if ((el.login = clients[key].login))
+              clients[key].send(
+                JSON.stringify({
+                  type: "PartyUpdate",
+                  party: users.partyID,
+                })
+              );
+          });
         }
         break;
       default:
@@ -558,8 +600,32 @@ module.exports = async (ws) => {
         break;
     }
   });
-  ws.on("close", function () {
+  ws.on("close", async function () {
     console.log("соединение закрыто " + id);
+    let login = clients[id].login;
     delete clients[id];
+    let user = await User.findOne({ login });
+    user.ready = false;
+    await User.updateOne({ login }, { $set: user });
+    if (user.partyID) {
+      let party = await Party.findOne({ _id: user.partyID });
+      if (party) {
+        party.players.forEach((el) => {
+          if (el.login == login) el.ready = false;
+        });
+        await Party.updateOne({ _id: user.partyID }, { $set: party });
+        for (var key in clients) {
+          party.players.forEach((el) => {
+            if (el.login != login)
+              clients[key].send(
+                JSON.stringify({
+                  type: "PartyUpdate",
+                  party: user.partyID,
+                })
+              );
+          });
+        }
+      }
+    }
   });
 };
