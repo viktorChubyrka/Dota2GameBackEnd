@@ -2,47 +2,58 @@ const User = require("../../db/models/user");
 const Match = require("../../db/models/match");
 const Party = require("../../db/models/party");
 const partyController = require("../../controller/partyController");
-const user = require("../../db/models/user");
 
-let SetReady = async (login) => {
+let Deletenotification = async (login, date) => {
   let user = await User.findOne({ login });
-  user.ready = !user.ready;
-  if (user.partyID) {
-    let party = await Party.findOne({ _id: user.partyID });
-    console.log(party);
-    if (party) {
-      party.players.forEach((el) => {
-        if (el.login == login) el.ready = !el.ready;
-      });
-      await User.updateOne({ login }, { $set: user });
-      await Party.updateOne({ _id: user.partyID }, { $set: party });
-      return { players: party.players, partyID: user.partyID };
-    }
-  }
+  let date1 = new Date(date);
+  let date2;
+  user.notifications.forEach((el, index) => {
+    date2 = new Date(el.date);
+    if (date1.getTime() - date2.getTime() == 0)
+      user.notifications.splice(index, 1);
+  });
   await User.updateOne({ login }, { $set: user });
-  return { players: [user.login], partyID: user.partyID };
 };
 
 let CickFromParty = async (login, cickLogin, partyID) => {
-  let party = await Party.findOne({ _id: partyID });
-  console.log(party);
+  let party = await Party.findOne({ creatorLogin: login });
   let user = await User.findOne({ login: cickLogin });
-  if (party.creatorLogin == login) {
-    party.players.forEach((el, index) => {
-      if (el.login == cickLogin) {
-        party.players.splice(index, 1);
+  let creatorUser = await User.findOne({ login });
+  user.ready = false;
+  if (party) {
+    console.log(1);
+    if (party.creatorLogin == login) {
+      console.log(2);
+      party.players.forEach((el, index) => {
+        if (el.login == cickLogin) {
+          party.players.splice(index, 1);
+        }
+      });
+      if (party.players.length < 2) {
+        creatorUser.partyID = "";
+        await Party.deleteOne({ creatorLogin: login });
+        user.partyID = "";
+        creatorUser.ready = false;
+        await User.updateOne({ login: cickLogin }, { $set: user });
+        await User.updateOne({ login }, { $set: creatorUser });
+        return [];
+      } else {
+        console.log(4);
+        user.partyID = "";
+        await Party.updateOne({ creatorLogin: login }, { $set: party });
       }
-    });
-    user.partyID = "";
-    await User.updateOne({ login: cickLogin }, { $set: user });
-    await Party.updateOne({ _id: partyID }, { $set: party });
-    return party.players;
-  } else return false;
+      await User.updateOne({ login: cickLogin }, { $set: user });
+      await User.updateOne({ login }, { $set: creatorUser });
+
+      return party.players;
+    } else return [];
+  } else return [];
 };
 
 let LeveParty = async (login, partyID) => {
   let party = await Party.findOne({ _id: partyID });
   let user = await User.findOne({ login });
+  user.ready = false;
   user.partyID = "";
   party.players.forEach((el, index) => {
     if (el.login == login) party.players.splice(index, 1);
@@ -71,6 +82,9 @@ let enterLobby = async (matchNumber, login) => {
     else if (match.playersT2.length < 5) match.playersT2.push(login);
     await Match.updateOne({ matchNumber }, { $set: match });
   }
+  let user = await User.findOne({ login });
+  user.ready = true;
+  await User.updateOne({ login }, { $set: user });
 };
 
 let leaveFromLobby = async (matchNumber, login) => {
@@ -87,6 +101,9 @@ let leaveFromLobby = async (matchNumber, login) => {
       matchToLeave.playersT2.splice(index, 1);
     }
     await Match.updateOne({ matchNumber }, { $set: matchToLeave });
+    let user = await User.findOne({ login });
+    user.ready = false;
+    await User.updateOne({ login }, { $set: user });
   }
 };
 
@@ -97,17 +114,16 @@ let destroyLobby = async (creatorLogin) => {
   let logins = [...lobbyToDelete.playersT2, ...lobbyToDelete.playersT1];
   for (let i = 0; i < logins.length; i++) {
     let user = await User.findOne({ login: logins[i] });
-    users.push(user);
-  }
-
-  users.forEach(async (el) => {
+    user.ready = false;
     el.notifications.push({
       date: new Date(),
       message: "Лобби розпущено",
       type: "LobbyDestroed",
+      new: true,
     });
-    await User.updateOne({ login: el.login }, { $set: el });
-  });
+    await User.updateOne({ login: login[i] }, { $set: user });
+    users.push(user);
+  }
   return logins;
 };
 
@@ -162,6 +178,9 @@ let addToLobby = async (login) => {
       let a = await newMatch.save();
     }
   }
+  let user = await User.findOne({ login });
+  user.ready = true;
+  await User.updateOne({ login }, { $set: user });
 };
 let AddPartyNotification = async (login, friendLogin, partyId) => {
   let party;
@@ -179,7 +198,7 @@ let AddPartyNotification = async (login, friendLogin, partyId) => {
         login: friend.login,
         photo: friend.photo,
         status: "waiting",
-        ready: false,
+        ready: true,
       });
       friend.notifications.push({
         date: new Date(),
@@ -187,6 +206,7 @@ let AddPartyNotification = async (login, friendLogin, partyId) => {
         message: "Приглашение в лобби",
         type: "AddTooParty",
         partyID: partyId,
+        new: true,
       });
     }
     await User.updateOne({ login: friendLogin }, { $set: friend });
@@ -196,12 +216,12 @@ let AddPartyNotification = async (login, friendLogin, partyId) => {
     party = new Party({
       creatorLogin: login,
       players: [
-        { login, photo: user.photo, status: "inLobby", ready: user.ready },
+        { login, photo: user.photo, status: "inLobby", ready: true },
         {
           login: friendLogin,
           photo: friend.photo,
           status: "waiting",
-          ready: false,
+          ready: true,
         },
       ],
     });
@@ -212,8 +232,10 @@ let AddPartyNotification = async (login, friendLogin, partyId) => {
       message: "Приглашение в лобби",
       type: "AddTooParty",
       partyID: newParty._id,
+      new: true,
     });
     user.partyID = newParty._id;
+    user.ready = true;
     await User.updateOne({ login: friendLogin }, { $set: friend });
     await User.updateOne({ login }, { $set: user });
     let partyID = newParty._id;
@@ -232,6 +254,7 @@ let AddFriendNotification = async (login, userTooAdd) => {
       date: new Date(),
       login,
       type: "AddTooFriends",
+      new: true,
     });
   await User.updateOne({ login: userTooAdd }, { $set: userTooAddFriend });
 };
@@ -257,6 +280,7 @@ let AcceptFriend = async (login, friendLogin) => {
     login,
     message: "Принял заявку в друзья",
     type: "AcceptFriend",
+    new: true,
   });
 
   await User.updateOne({ login: friendLogin }, { $set: user2 });
@@ -275,6 +299,7 @@ let notAcceptFriend = async (login, friendLogin) => {
     login,
     message: "Отклонил заявку в друзья",
     type: "notAcceptFriend",
+    new: true,
   });
   await User.updateOne({ login: friendLogin }, { $set: user2 });
 };
@@ -284,9 +309,9 @@ let AcceptParty = async (login, friendLogin, partyID) => {
   let party = await Party.findOne({ _id: partyID });
 
   party.players.forEach((el) => {
-    if (el.login == login) {
+    if (el.login == login || el.login == friendLogin) {
       el.status = "inLobby";
-      el.ready = user.ready;
+      el.ready = true;
     }
   });
 
@@ -295,17 +320,19 @@ let AcceptParty = async (login, friendLogin, partyID) => {
       user.notifications.splice(index, 1);
   });
   user.partyID = partyID;
+  user.ready = true;
   await User.updateOne({ login }, { $set: user });
-
+  friend.ready = true;
   friend.notifications.push({
     date: new Date(),
     login,
     message: "Приcоединился к лобби",
     type: "AcceptLobby",
+    new: true,
   });
 
   await User.updateOne({ login: friendLogin }, { $set: friend });
-  let a = await Party.updateOne({ _id: partyID }, { $set: party });
+  await Party.updateOne({ _id: partyID }, { $set: party });
 };
 let notAcceptParty = async (login, friendLogin, partyID) => {
   let user = await User.findOne({ login });
@@ -325,6 +352,7 @@ let notAcceptParty = async (login, friendLogin, partyID) => {
     login,
     message: "Пати отклонено от",
     type: "notAcceptParty",
+    new: true,
   });
   await User.updateOne({ login: friendLogin }, { $set: friend });
 };
@@ -336,6 +364,17 @@ module.exports = async (ws) => {
   await ws.on("message", async function (message) {
     let data = JSON.parse(message);
     switch (data.type) {
+      case "DeleteNotification":
+        await Deletenotification(data.login, data.date);
+        for (var key in clients) {
+          if (clients[key].login == data.login)
+            clients[key].send(
+              JSON.stringify({
+                type: "NotificationUpdate",
+              })
+            );
+        }
+        break;
       case "AddToParty":
         let IDparty = await AddPartyNotification(
           data.login,
@@ -418,7 +457,8 @@ module.exports = async (ws) => {
             players2.forEach((el) => {
               if (
                 clients[key].login == el.login ||
-                clients[key].login == data.cickLogin
+                clients[key].login == data.cickLogin ||
+                clients[key].login == data.login
               )
                 clients[key].send(
                   JSON.stringify({
@@ -427,6 +467,16 @@ module.exports = async (ws) => {
                   })
                 );
             });
+            if (
+              clients[key].login == data.login ||
+              clients[key].login == data.cickLogin
+            )
+              clients[key].send(
+                JSON.stringify({
+                  type: "PartyUpdate",
+                  party: "",
+                })
+              );
           }
         break;
       case "EnterLobby":
@@ -494,12 +544,14 @@ module.exports = async (ws) => {
                 Tab: 3,
               })
             );
-          clients[key].send(
-            JSON.stringify({
-              type: "LobbyUpdate",
-            })
-          );
+          else
+            clients[key].send(
+              JSON.stringify({
+                type: "LobbyUpdate",
+              })
+            );
         }
+        break;
       case "join":
         clients[id].login = data.data;
         clients[id].ready = false;
@@ -514,7 +566,6 @@ module.exports = async (ws) => {
             JSON.stringify({
               type: "online",
               online,
-              ready: readyOnStart,
             })
           );
         }
@@ -558,35 +609,6 @@ module.exports = async (ws) => {
             );
         }
         break;
-      case "setReady":
-        let ready = 0;
-        let users = await SetReady(data.login);
-        console.log(users);
-        for (var key in clients) {
-          if (clients[key].login == data.login)
-            clients[key].ready = !clients[key].ready;
-          if (clients[key].ready) ready += 1;
-        }
-        for (var key in clients) {
-          clients[key].send(
-            JSON.stringify({
-              type: "ready",
-              ready,
-            })
-          );
-        }
-        for (var key in clients) {
-          users.players.forEach((el) => {
-            if ((el.login = clients[key].login))
-              clients[key].send(
-                JSON.stringify({
-                  type: "PartyUpdate",
-                  party: users.partyID,
-                })
-              );
-          });
-        }
-        break;
       default:
         for (var key in clients) {
           clients[key].send(
@@ -602,30 +624,6 @@ module.exports = async (ws) => {
   });
   ws.on("close", async function () {
     console.log("соединение закрыто " + id);
-    let login = clients[id].login;
     delete clients[id];
-    let user = await User.findOne({ login });
-    user.ready = false;
-    await User.updateOne({ login }, { $set: user });
-    if (user.partyID) {
-      let party = await Party.findOne({ _id: user.partyID });
-      if (party) {
-        party.players.forEach((el) => {
-          if (el.login == login) el.ready = false;
-        });
-        await Party.updateOne({ _id: user.partyID }, { $set: party });
-        for (var key in clients) {
-          party.players.forEach((el) => {
-            if (el.login != login)
-              clients[key].send(
-                JSON.stringify({
-                  type: "PartyUpdate",
-                  party: user.partyID,
-                })
-              );
-          });
-        }
-      }
-    }
   });
 };
