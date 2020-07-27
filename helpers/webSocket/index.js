@@ -3,6 +3,74 @@ const Match = require("../../db/models/match");
 const Party = require("../../db/models/party");
 const partyController = require("../../controller/partyController");
 
+let setUserActive = async (login) => {
+  let user = await User.findOne({ login });
+  user.ready = !user.ready;
+  if (user.partyID) {
+    let party = await Party.findOne({ _id: user.partyID });
+    party.players.forEach((el) => {
+      if (el.login == login) el.ready = !el.ready;
+    });
+    await Party.updateOne({ _id: user.partyID }, { $set: party });
+    await User.updateOne({ login }, { $set: user });
+    return party._id;
+  }
+  await User.updateOne({ login }, { $set: user });
+  return "";
+};
+
+let SearchPartyGame = async (login) => {
+  let matchesNotFiltered = await Match.find();
+  let user = await User.findOne({ login });
+  let matches = matchesNotFiltered.filter(
+    (match) => match.gameType == "Party" && match.status == "upcoming"
+  );
+  if (matches[0]) {
+    party = new Party({
+      creatorLogin: login,
+      players: [{ login, photo: user.photo, status: "inLobby", ready: true }],
+    });
+    let newParty = await party.save();
+    user.partyID = newParty._id;
+    user.ready = true;
+    if (matches[0].playersT1) {
+      newParty.players.forEach((el) => {
+        matches[0].playersT2.push(el.login);
+      });
+    }
+    if (matches[0].playersT2) {
+      newParty.players.forEach((el) => {
+        matches[0].playersT1.push(el.login);
+      });
+    }
+    await Match.updateOne({ _id: matches[0]._id }, { $set: matches[0] });
+    await User.updateOne({ login }, { $set: user });
+    return [...matches[0].playersT1, ...matches[0].playersT2];
+  } else {
+    party = new Party({
+      creatorLogin: login,
+      players: [{ login, photo: user.photo, status: "inLobby", ready: true }],
+    });
+    let newParty = await party.save();
+    user.partyID = newParty._id;
+    user.ready = true;
+    let matchNumber = "";
+    for (let i = 0; i < 10; i++) {
+      matchNumber = matchNumber + Math.floor(Math.random() * Math.floor(10));
+    }
+    let newMatch = new Match({
+      creatorLogin: login,
+      playersT1: [login],
+      creationDate: new Date(),
+      matchNumber,
+      gameType: "Party",
+      status: "upcoming",
+    });
+    let a = await newMatch.save();
+    return [...newMatch.playersT1, ...newMatch.playersT2];
+  }
+};
+
 let Deletenotification = async (login, date) => {
   let user = await User.findOne({ login });
   let date1 = new Date(date);
@@ -114,7 +182,9 @@ let destroyLobby = async (creatorLogin) => {
   let lobbyToDelete = await Match.findOne({ creatorLogin });
   await Match.deleteOne({ creatorLogin });
   let users = [];
-  let logins = [...lobbyToDelete.playersT2, ...lobbyToDelete.playersT1];
+  let logins = [];
+  if (lobbyToDelete)
+    logins = [...lobbyToDelete.playersT2, ...lobbyToDelete.playersT1];
   for (let i = 0; i < logins.length; i++) {
     let user = await User.findOne({ login: logins[i] });
     user.ready = false;
@@ -371,6 +441,32 @@ module.exports = async (ws) => {
   await ws.on("message", async function (message) {
     let data = JSON.parse(message);
     switch (data.type) {
+      case "SetActive":
+        let partyID = await setUserActive(data.login);
+        for (var key in clients) {
+          clients[key].send(
+            JSON.stringify({
+              type: "ReadyUpdate",
+              partyID,
+            })
+          );
+        }
+        break;
+      case "SearchPartyGame":
+        console.log("sdsad");
+        let playersParty = await SearchPartyGame(data.login);
+        playersParty.forEach((el) => {
+          for (var key in clients) {
+            if (clients[key].login == el.login)
+              clients[key].send(
+                JSON.stringify({
+                  type: "LobbyUpdate",
+                })
+              );
+          }
+        });
+
+        break;
       case "DeleteNotification":
         await Deletenotification(data.login, data.date);
         for (var key in clients) {
