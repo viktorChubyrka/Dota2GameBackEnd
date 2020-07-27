@@ -344,7 +344,11 @@ let notAcceptParty = async (login, friendLogin, partyID) => {
   party.players.forEach((el, index) => {
     if (el.login == login) party.players.splice(index, 1);
   });
-  await Party.updateOne({ _id: partyID }, { $set: party });
+  if (party.players.length < 2) {
+    await Party.deleteOne({ _id: partyID });
+    friend.ready = false;
+    friend.partyID = "";
+  } else await Party.updateOne({ _id: partyID }, { $set: party });
   user.notifications.forEach((el, index) => {
     if (el.login == friendLogin && el.type == "AddTooParty")
       user.notifications.splice(index, 1);
@@ -427,7 +431,6 @@ module.exports = async (ws) => {
             clients[key].send(
               JSON.stringify({
                 type: "PartyUpdate",
-                party: data.partyID,
               })
             );
         }

@@ -6,6 +6,7 @@ const getUserData = require("./getUserData");
 const changeName = require("./changeName");
 const changeContactInfo = require("./changeContactInfo");
 const saveProfilePhoto = require("./saveProfilePhoto");
+const getUsers = require("./getUsers");
 
 module.exports = {
   login,
@@ -16,4 +17,5 @@ module.exports = {
   changeName,
   changeContactInfo,
   saveProfilePhoto,
+  getUsers,
 };

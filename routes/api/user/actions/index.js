@@ -33,6 +33,22 @@ router.get("/getAllUsers", async (req, res) => {
     res.send({ data });
   }
 });
+router.get("/getAllReadyUsers", async (req, res) => {
+  let ready = 0;
+  if (req.session.login) {
+    let users = await userController.getUsers();
+    for (let i = 0; i < users.length; i++) {
+      if (users[i].ready) ready += 1;
+    }
+    res.send({ status: "200", ready });
+  } else {
+    let data = {
+      status: "404",
+      message: "No session",
+    };
+    res.send({ data });
+  }
+});
 
 router.post("/getUserData", async (req, res) => {
   if (req.session.login) {
