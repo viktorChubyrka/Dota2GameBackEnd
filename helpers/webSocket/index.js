@@ -88,9 +88,12 @@ let enterLobby = async (matchNumber, login) => {
 };
 
 let leaveFromLobby = async (matchNumber, login) => {
+  let user = await User.findOne({ login });
   let matchToLeave = await Match.findOne({ matchNumber });
   if ([...matchToLeave.playersT1, ...matchToLeave.playersT2].length == 1) {
     await Match.deleteOne({ matchNumber });
+    user.ready = false;
+    await User.updateOne({ login }, { $set: user });
   } else {
     let index = 0;
     if (matchToLeave.playersT1.includes(login)) {
@@ -101,7 +104,7 @@ let leaveFromLobby = async (matchNumber, login) => {
       matchToLeave.playersT2.splice(index, 1);
     }
     await Match.updateOne({ matchNumber }, { $set: matchToLeave });
-    let user = await User.findOne({ login });
+
     user.ready = false;
     await User.updateOne({ login }, { $set: user });
   }
