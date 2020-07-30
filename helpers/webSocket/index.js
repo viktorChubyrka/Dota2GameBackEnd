@@ -16,14 +16,30 @@ let enterPartyLobby = async (matchNumber, login) => {
     }
   }
 };
-let leaveFromPartyLobby = async (login) => {
+let leaveFromPartyLobby = async (login, matchNumber) => {
   let user = await User.findOne({ login });
   let party = await Party.findOne({ _id: user.partyID });
+  let match = await Match.findOne({ matchNumber });
   party.players.forEach((el, index) => {
     if (el.login == login) party.players.splice(index, 1);
   });
   if (party.players.length < 1) {
     await Party.deleteOne({ _id: user.partyID });
+    if (match.playersT1[0]) {
+      if (match.playersT1[0] == user.partyID) {
+        match.playersT1 = [];
+        if (match.playersT1.length + match.playersT2.length < 1) {
+          await Match.deleteOne({ matchNumber });
+        }
+      }
+    } else if (match.playersT2[0]) {
+      if (match.playersT2[0] == user.partyID) {
+        match.playersT2 = [];
+        if (match.playersT1.length + match.playersT2.length < 1) {
+          await Match.deleteOne({ matchNumber });
+        }
+      }
+    }
     user.partyID = "";
   } else await Party.updateOne({ _id: party._id }, { $set: party });
   await User.updateOne({ login }, { $set: user });
@@ -70,10 +86,7 @@ let SearchPartyGame = async (login, clients) => {
         if (match.playersT1) {
           match.playersT2.push(partyCreated._id);
         } else match.playersT1.push(partyCreated._id);
-        let updatetMatch = await Match.updateOne(
-          { _id: match._id },
-          { $set: match }
-        );
+        await Match.updateOne({ _id: match._id }, { $set: match });
         let partyPlayers1 = [];
         let partyPlayers2 = [];
         if (match.playersT1[0])
@@ -96,6 +109,11 @@ let SearchPartyGame = async (login, clients) => {
                 })
               );
           });
+          clients[key].send(
+            JSON.stringify({
+              type: "LobbyUpdate",
+            })
+          );
         }
       } else {
         let matchNumber = "";
@@ -149,8 +167,8 @@ let CickFromParty = async (login, cickLogin, partyID) => {
   let party = await Party.findOne({ creatorLogin: login });
   let user = await User.findOne({ login: cickLogin });
   let creatorUser = await User.findOne({ login });
-  let match1 = Match.findOne({ playersT1: party._id });
-  let match2 = Match.findOne({ playersT2: party._id });
+  let match = await Match.findOne({ creatorLogin: login });
+
   user.ready = false;
   if (party) {
     if (party.creatorLogin == login) {
@@ -159,9 +177,9 @@ let CickFromParty = async (login, cickLogin, partyID) => {
           party.players.splice(index, 1);
         }
       });
-      if (party.players.length < 2 && !match1 && !match2) {
+      if (party.players.length < 2 && !match) {
         creatorUser.partyID = "";
-        console.log(await Party.deleteOne({ creatorLogin: login }));
+        await Party.deleteOne({ creatorLogin: login });
         user.partyID = "";
         creatorUser.ready = false;
         await User.updateOne({ login: cickLogin }, { $set: user });
@@ -273,9 +291,13 @@ let addToLobby = async (login) => {
   let matchIndex = 0;
   let teamNumber = 0;
   let matchNumber = "";
+  let party;
   let allReadyInLobby = false;
   let userTest = await User.findOne({ login });
-  matches.forEach((el, index) => {
+  if (userTest.partyID) {
+    party = await Party.findOne({ _id: userTest.partyID });
+  }
+  matches.forEach(async (el, index) => {
     if (
       !el.playersT2.includes(login) &&
       !el.playersT1.includes(login) &&
@@ -523,6 +545,7 @@ module.exports = async (ws) => {
   console.log("новое соединение " + id);
   await ws.on("message", async function (message) {
     let data = JSON.parse(message);
+    console.log(data.type);
     switch (data.type) {
       case "SetActive":
         let partyID = await setUserActive(data.login);
@@ -667,7 +690,6 @@ module.exports = async (ws) => {
             clients[key].send(
               JSON.stringify({
                 type: "LobbyUpdate",
-                Tab: 3,
               })
             );
           clients[key].send(
@@ -695,7 +717,7 @@ module.exports = async (ws) => {
         }
         break;
       case "LeavePartyLobby":
-        await leaveFromPartyLobby(data.login);
+        await leaveFromPartyLobby(data.login, data.matchNumber);
         for (var key in clients) {
           if (clients[key].login == data.login)
             clients[key].send(
