@@ -303,7 +303,7 @@ let addToLobby = async (login) => {
       !el.playersT1.includes(login) &&
       !userTest.partyID
     ) {
-      if (el.status == "upcoming") {
+      if (el.status == "upcoming" && el.gameType == "Solo") {
         if (
           el.playersT1.length + el.playersT2.length > playerCount &&
           el.playersT1.length + el.playersT2.length < 10
@@ -322,9 +322,22 @@ let addToLobby = async (login) => {
           }
         }
       }
+    } else if (party) {
+      if (party.players.length == 5)
+        if (el.status == "upcoming") {
+          if (el.gameType == "Party") {
+            if (el.playersT1.length < 1) {
+              el.playersT1.push(party._id);
+              return;
+            } else if (el.playersT2.length < 1) {
+              el.playersT2.push(party._id);
+              return;
+            }
+          }
+        }
     } else allReadyInLobby = true;
   });
-  if (!allReadyInLobby) {
+  if (!allReadyInLobby && !party) {
     if (playerCount) {
       if (teamNumber) matches[matchIndex].playersT2.push(login);
       else matches[matchIndex].playersT1.push(login);
@@ -344,6 +357,19 @@ let addToLobby = async (login) => {
       });
       let a = await newMatch.save();
     }
+  } else if (party) {
+    for (let i = 0; i < 10; i++) {
+      matchNumber = matchNumber + Math.floor(Math.random() * Math.floor(10));
+    }
+    let newMatch = new Match({
+      creatorLogin: login,
+      playersT1: [userTest.partyID],
+      creationDate: new Date(),
+      matchNumber,
+      gameType: "Party",
+      status: "upcoming",
+    });
+    let a = await newMatch.save();
   }
   let user = await User.findOne({ login });
   user.ready = true;
@@ -861,6 +887,10 @@ module.exports = async (ws) => {
   });
   ws.on("close", async function () {
     console.log("соединение закрыто " + id);
+    let login = clients[id].login;
+    let user = await User.findOne({ login });
+    user.ready = false;
+    await User.updateOne({ login }, { $set: user });
     delete clients[id];
   });
 };
