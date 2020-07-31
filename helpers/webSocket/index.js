@@ -2,6 +2,7 @@ const User = require("../../db/models/user");
 const Match = require("../../db/models/match");
 const Party = require("../../db/models/party");
 const partyController = require("../../controller/partyController");
+const BOT = require("../../BOT/bot1");
 
 let enterPartyLobby = async (matchNumber, login) => {
   let user = await User.findOne({ login });
@@ -174,9 +175,10 @@ let CickFromParty = async (login, cickLogin, partyID) => {
       });
       if (party.players.length < 2 && !match) {
         creatorUser.partyID = "";
-        await Party.deleteOne({ creatorLogin: login });
-        user.partyID = "";
         creatorUser.ready = false;
+        user.partyID = "";
+        await Party.deleteOne({ creatorLogin: login });
+
         await User.updateOne({ login: cickLogin }, { $set: user });
         await User.updateOne({ login }, { $set: creatorUser });
         return [];
@@ -296,69 +298,73 @@ let addToLobby = async (login) => {
     console.log(1);
   }
   matches.forEach(async (el, index) => {
+    if (el.playersT2.includes(login) || el.playersT1.includes(login)) {
+      allReadyInLobby = true;
+    }
     console.log("match");
     if (
+      party &&
       !el.playersT1.includes(party._id) &&
       !el.playersT2.includes(party._id)
     ) {
-      console.log(2);
-      if (
-        !el.playersT2.includes(login) &&
-        !el.playersT1.includes(login) &&
-        !userTest.partyID
-      ) {
-        if (el.status == "upcoming" && el.gameType == "Solo") {
-          if (
-            el.playersT1.length + el.playersT2.length > playerCount &&
-            el.playersT1.length + el.playersT2.length < 10
-          ) {
-            playerCount = el.playersT1.length + el.playersT2.length;
-            match = index;
-            if (
-              el.playersT1.length > el.playersT2.length &&
-              el.playersT1.length < 5
-            ) {
-              teamNumber = 0;
-              matchNumber = el.matchNumber;
-            } else {
-              teamNumber = 1;
-              matchNumber = el.matchNumber;
-            }
-          }
-        }
-      } else if (party) {
-        console.log(3);
-        if (party.players.length == 5) console.log(4);
-        if (el.status == "upcoming") {
-          console.log(5);
-          if (el.gameType == "Party") {
-            console.log(6);
-            if (el.playersT1.length < 1) {
-              console.log(7);
-              el.playersT1.push(party._id);
-              flag = true;
-              await Match.updateOne(
-                { matchNumber: el.matchNumber },
-                { $set: el }
-              );
-              return;
-            } else if (el.playersT2.length < 1) {
-              console.log(8);
-              el.playersT2.push(party._id);
-              flag = true;
-              await Match.updateOne(
-                { matchNumber: el.matchNumber },
-                { $set: el }
-              );
-              return;
-            }
-          }
-        }
-      } else {
-        allReadyInLobby = true;
-        console.log(9);
-      }
     } else flag = true;
+
+    if (
+      !el.playersT2.includes(login) &&
+      !el.playersT1.includes(login) &&
+      !userTest.partyID
+    ) {
+      if (el.status == "upcoming" && el.gameType == "Solo") {
+        if (
+          el.playersT1.length + el.playersT2.length > playerCount &&
+          el.playersT1.length + el.playersT2.length < 10
+        ) {
+          playerCount = el.playersT1.length + el.playersT2.length;
+          match = index;
+          if (
+            el.playersT1.length > el.playersT2.length &&
+            el.playersT1.length < 5
+          ) {
+            teamNumber = 0;
+            matchNumber = el.matchNumber;
+          } else {
+            teamNumber = 1;
+            matchNumber = el.matchNumber;
+          }
+        }
+      }
+    } else if (party) {
+      console.log(3);
+      if (party.players.length == 5) console.log(4);
+      if (el.status == "upcoming") {
+        console.log(5);
+        if (el.gameType == "Party") {
+          console.log(6);
+          if (el.playersT1.length < 1) {
+            console.log(7);
+            el.playersT1.push(party._id);
+            flag = true;
+            await Match.updateOne(
+              { matchNumber: el.matchNumber },
+              { $set: el }
+            );
+            return;
+          } else if (el.playersT2.length < 1) {
+            console.log(8);
+            el.playersT2.push(party._id);
+            flag = true;
+            await Match.updateOne(
+              { matchNumber: el.matchNumber },
+              { $set: el }
+            );
+            return;
+          }
+        }
+      }
+    } else {
+      allReadyInLobby = true;
+      console.log(9);
+    }
   });
   if (!allReadyInLobby && !userTest.partyID) {
     console.log(10);
@@ -402,10 +408,20 @@ let addToLobby = async (login) => {
 };
 let AddPartyNotification = async (login, friendLogin, partyId, matchID) => {
   let party;
+  let isInMatch = false;
   if (partyId) party = await Party.findOne({ _id: partyId });
   let user = await User.findOne({ login });
   let friend = await User.findOne({ login: friendLogin });
-  if (party) {
+  let matches = await Match.find();
+  matches.forEach((el) => {
+    if (
+      el.playersT1.includes(friendLogin) ||
+      el.playersT2.includes(friendLogin)
+    ) {
+      isInMatch = true;
+    }
+  });
+  if (party && !friend.partyID && !isInMatch) {
     let allreadyInParty = false;
     party.players.forEach((el) => {
       if (el.login == friendLogin) allreadyInParty = true;
@@ -431,7 +447,7 @@ let AddPartyNotification = async (login, friendLogin, partyId, matchID) => {
     await User.updateOne({ login: friendLogin }, { $set: friend });
     await Party.updateOne({ _id: partyId }, { $set: party });
     return partyId;
-  } else {
+  } else if (!friend.partyID && !isInMatch) {
     party = new Party({
       creatorLogin: login,
       players: [
@@ -848,6 +864,7 @@ module.exports = async (ws) => {
         }
         break;
       case "join":
+        BOT();
         clients[id].login = data.data;
         clients[id].ready = false;
         var readyOnStart = 0;
