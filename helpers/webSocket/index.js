@@ -11,7 +11,7 @@ let enterPartyLobby = async (matchNumber, login) => {
     party = await Party.findOne({ _id: user.partyID });
     if (party.players.length == 5) {
       if (match.playersT1[0]) match.playersT2.push(party._id);
-      if (match.playersT2[0]) match.playersT1.push(party._id);
+      else if (match.playersT2[0]) match.playersT1.push(party._id);
       await Match.updateOne({ matchNumber }, { $set: match });
     }
   }
@@ -109,11 +109,6 @@ let SearchPartyGame = async (login, clients) => {
                 })
               );
           });
-          clients[key].send(
-            JSON.stringify({
-              type: "LobbyUpdate",
-            })
-          );
         }
       } else {
         let matchNumber = "";
@@ -293,51 +288,80 @@ let addToLobby = async (login) => {
   let matchNumber = "";
   let party;
   let allReadyInLobby = false;
+  let flag = false;
+
   let userTest = await User.findOne({ login });
   if (userTest.partyID) {
     party = await Party.findOne({ _id: userTest.partyID });
+    console.log(1);
   }
   matches.forEach(async (el, index) => {
+    console.log("match");
     if (
-      !el.playersT2.includes(login) &&
-      !el.playersT1.includes(login) &&
-      !userTest.partyID
+      !el.playersT1.includes(party._id) &&
+      !el.playersT2.includes(party._id)
     ) {
-      if (el.status == "upcoming" && el.gameType == "Solo") {
-        if (
-          el.playersT1.length + el.playersT2.length > playerCount &&
-          el.playersT1.length + el.playersT2.length < 10
-        ) {
-          playerCount = el.playersT1.length + el.playersT2.length;
-          match = index;
+      console.log(2);
+      if (
+        !el.playersT2.includes(login) &&
+        !el.playersT1.includes(login) &&
+        !userTest.partyID
+      ) {
+        if (el.status == "upcoming" && el.gameType == "Solo") {
           if (
-            el.playersT1.length > el.playersT2.length &&
-            el.playersT1.length < 5
+            el.playersT1.length + el.playersT2.length > playerCount &&
+            el.playersT1.length + el.playersT2.length < 10
           ) {
-            teamNumber = 0;
-            matchNumber = el.matchNumber;
-          } else {
-            teamNumber = 1;
-            matchNumber = el.matchNumber;
+            playerCount = el.playersT1.length + el.playersT2.length;
+            match = index;
+            if (
+              el.playersT1.length > el.playersT2.length &&
+              el.playersT1.length < 5
+            ) {
+              teamNumber = 0;
+              matchNumber = el.matchNumber;
+            } else {
+              teamNumber = 1;
+              matchNumber = el.matchNumber;
+            }
           }
         }
-      }
-    } else if (party) {
-      if (party.players.length == 5)
+      } else if (party) {
+        console.log(3);
+        if (party.players.length == 5) console.log(4);
         if (el.status == "upcoming") {
+          console.log(5);
           if (el.gameType == "Party") {
+            console.log(6);
             if (el.playersT1.length < 1) {
+              console.log(7);
               el.playersT1.push(party._id);
+              flag = true;
+              await Match.updateOne(
+                { matchNumber: el.matchNumber },
+                { $set: el }
+              );
               return;
             } else if (el.playersT2.length < 1) {
+              console.log(8);
               el.playersT2.push(party._id);
+              flag = true;
+              await Match.updateOne(
+                { matchNumber: el.matchNumber },
+                { $set: el }
+              );
               return;
             }
           }
         }
-    } else allReadyInLobby = true;
+      } else {
+        allReadyInLobby = true;
+        console.log(9);
+      }
+    } else flag = true;
   });
-  if (!allReadyInLobby && !party) {
+  if (!allReadyInLobby && !userTest.partyID) {
+    console.log(10);
     if (playerCount) {
       if (teamNumber) matches[matchIndex].playersT2.push(login);
       else matches[matchIndex].playersT1.push(login);
@@ -357,7 +381,8 @@ let addToLobby = async (login) => {
       });
       let a = await newMatch.save();
     }
-  } else if (party) {
+  } else if (party && !flag) {
+    console.log(11);
     for (let i = 0; i < 10; i++) {
       matchNumber = matchNumber + Math.floor(Math.random() * Math.floor(10));
     }
@@ -586,6 +611,13 @@ module.exports = async (ws) => {
         break;
       case "SearchPartyGame":
         await SearchPartyGame(data.login, clients);
+        for (var key in clients) {
+          clients[key].send(
+            JSON.stringify({
+              type: "LobbyUpdate",
+            })
+          );
+        }
         break;
       case "DeleteNotification":
         await Deletenotification(data.login, data.date);
