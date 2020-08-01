@@ -1,5 +1,5 @@
 var steam = require("steam"),
-  util = require("util"),
+  console = require("console"),
   fs = require("fs"),
   crypto = require("crypto"),
   dota2 = require("dota2"),
@@ -37,15 +37,15 @@ module.exports = () => {
 
     Dota2.createPracticeLobby(options.pass_key, options, function (err, data) {
       if (JSON.stringify(data["result"]) == 1) {
-        util.log("Лобби успешно создано");
+        console.log("Лобби успешно создано");
       } else {
-        util.log("Создать лобби не удалсоь");
+        console.log("Создать лобби не удалсоь");
       }
     });
 
     Dota2.joinPracticeLobbyTeam(1, 4, function (err, data) {
       if (JSON.stringify(data["result"]) == 1) {
-        util.log("Бот занял место наблюдателя.");
+        console.log("Бот занял место наблюдателя.");
       }
     });
     /*Invites*/
@@ -63,12 +63,12 @@ module.exports = () => {
       if (logonResp.eresult == steam.EResult.OK) {
         steamFriends.setPersonaState(steam.EPersonaState.Busy);
         steamFriends.setPersonaName("cGame.info|BOT #");
-        util.log("Авторизован.");
+        console.log("Авторизован.");
         Dota2.launch();
         Dota2.on("ready", function () {
           var date = new Date();
 
-          util.log("Бот готов.");
+          console.log("Бот готов.");
           /*Создаем лобби*/
           createLobby();
           /*Лобии создано*/
@@ -104,7 +104,6 @@ module.exports = () => {
                   );
                   break;
               }
-              FreeBot();
             }
             var pn;
             var pnn = 0;
@@ -133,7 +132,7 @@ module.exports = () => {
         });
 
         Dota2.on("unready", function onUnready() {
-          util.log("Node-dota2 unready.");
+          console.log("Node-dota2 unready.");
         });
 
         Dota2.on("chatMessage", function (channel, personaName, message) {
@@ -141,25 +140,22 @@ module.exports = () => {
         });
 
         Dota2.on("unhandled", function (kMsg) {
-          util.log("UNHANDLED MESSAGE #" + kMsg);
+          console.log("UNHANDLED MESSAGE #" + kMsg);
         });
       }
     },
     onSteamServers = function onSteamServers(servers) {
-      util.log("Received servers.");
+      console.log("Received servers.");
       fs.writeFile("servers", JSON.stringify(servers), () => {});
     },
     onSteamLogOff = function onSteamLogOff(eresult) {
-      util.log("Logged off from Steam.");
+      console.log("Logged off from Steam.");
     },
     onSteamError = function onSteamError(error) {
-      util.log("Connection closed by server.");
+      console.log("Connection closed by server.");
     };
   steamFriends.on("message", function (source, message, type, chatter) {
-    // respond to both chat room and private messages
-
     console.log("Получено сообщение: " + message);
-
     switch (message) {
       case "Покинуть":
         Dota2.abandonCurrentGame();
@@ -205,7 +201,7 @@ module.exports = () => {
         Dota2.leaveChat("Lobby_" + id);
         Dota2.exit();
         steamClient.disconnect();
-        FreeBot();
+
         break;
       case "Начать игру":
         Dota2.launchPracticeLobby(function (err, data) {});
@@ -224,7 +220,7 @@ module.exports = () => {
   });
   steamUser.on("updateMachineAuth", function (sentry, callback) {
     fs.writeFileSync("sentry", sentry.bytes);
-    util.log("sentryfile saved");
+    console.log("sentryfile saved");
 
     callback({
       sha_file: crypto.createHash("sha1").update(sentry.bytes).digest(),
@@ -242,7 +238,7 @@ module.exports = () => {
     var sentry = fs.readFileSync("sentry");
     if (sentry.length) logOnDetails.sha_sentryfile = sentry;
   } catch (beef) {
-    util.log("Cannot load the sentry. " + beef);
+    console.log("Cannot load the sentry. " + beef);
   }
 
   steamClient.connect();
