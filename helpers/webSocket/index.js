@@ -2,7 +2,6 @@ const User = require("../../db/models/user");
 const Match = require("../../db/models/match");
 const Party = require("../../db/models/party");
 const partyController = require("../../controller/partyController");
-const BOT = require("../../BOT/bot1");
 
 let enterPartyLobby = async (matchNumber, login) => {
   let user = await User.findOne({ login });
@@ -864,7 +863,6 @@ module.exports = async (ws) => {
         }
         break;
       case "join":
-        BOT();
         clients[id].login = data.data;
         clients[id].ready = false;
         var readyOnStart = 0;
