@@ -81,6 +81,8 @@ let SearchPartyGame = async (login, clients) => {
       });
       console.log(partyMatches);
       partyCreated = await partyCreated.save();
+      user.partyID = partyCreated._id;
+      await User.updateOne({ login }, { $set: user });
       if (partyMatches[0]) {
         let match = partyMatches[0];
         if (match.playersT1) {
@@ -194,25 +196,61 @@ let CickFromParty = async (login, cickLogin, partyID) => {
 };
 
 let LeveParty = async (login, partyID) => {
-  let party = await Party.findOne({ _id: partyID });
-  let user = await User.findOne({ login });
-  user.ready = false;
-  user.partyID = "";
-  party.players.forEach((el, index) => {
-    if (el.login == login) party.players.splice(index, 1);
-  });
-  let deleted = false;
-  if (party.players.length < 2) {
-    let lastUser = await User.findOne({ login: party.players[0].login });
-    lastUser.partyID = "";
-    lastUser.ready = false;
-    await Party.deleteOne({ _id: partyID });
-    await User.updateOne({ login: party.players[0].login }, { $set: lastUser });
-    deleted = true;
-  } else if (party.creatorLogin == login) party.creatorLogin = party.players[0];
-  if (!deleted) await Party.updateOne({ _id: partyID }, { $set: party });
-  await User.updateOne({ login }, { user });
-  return party.players;
+  if (partyID) {
+    let party = await Party.findOne({ _id: partyID });
+    let user = await User.findOne({ login });
+    console.log(party);
+    let players = party.players;
+    user.ready = false;
+    user.partyID = "";
+    party.players.forEach((el, index) => {
+      if (el.login == login) party.players.splice(index, 1);
+    });
+    let deleted = false;
+    let deletedM = false;
+    if (party.players.length < 2) {
+      let match = await Match.findOne({ playersT1: partyID });
+      console.log(match);
+      if (match) {
+        match.playersT1.splice(
+          match.playersT1.indexOf(partyID),
+          match.playersT1.length
+        );
+        if (match.playersT2.length < 1) {
+          await Match.deleteOne({ _id: match._id });
+          deletedM = true;
+        } else {
+          deletedM = true;
+          await Match.updateOne({ _id: match._id }, { $set: match });
+        }
+      } else match = await Match.findOne({ playersT2: partyID });
+      console.log(deletedM);
+      if (match && !deletedM) {
+        match.playersT2.splice(
+          match.playersT2.indexOf(partyID),
+          match.playersT2.length
+        );
+        if (match.playersT1.length < 1) {
+          await Match.deleteOne({ _id: match._id });
+        } else await Match.updateOne({ _id: match._id }, { $set: match });
+      }
+      if (party.players[0]) {
+        let lastUser = await User.findOne({ login: party.players[0].login });
+        console.log(lastUser);
+        lastUser.partyID = "";
+        lastUser.ready = false;
+        await User.updateOne({ login: lastUser.login }, { $set: lastUser });
+      }
+
+      await Party.deleteOne({ _id: partyID });
+
+      deleted = true;
+    } else if (party.creatorLogin == login)
+      party.creatorLogin = party.players[0];
+    if (!deleted) await Party.updateOne({ _id: partyID }, { $set: party });
+    await User.updateOne({ login }, { $set: user });
+    return players;
+  }
 };
 let enterLobby = async (matchNumber, login) => {
   let AllMatches = await Match.find();
@@ -632,6 +670,11 @@ module.exports = async (ws) => {
               type: "LobbyUpdate",
             })
           );
+          clients[key].send(
+            JSON.stringify({
+              type: "PartyUpdate",
+            })
+          );
         }
         break;
       case "DeleteNotification":
@@ -707,20 +750,31 @@ module.exports = async (ws) => {
         }
         break;
       case "LeveParty":
+        console.log(data);
         let players = await LeveParty(data.login, data.partyID);
+        console.log(players);
         for (var key in clients) {
-          players.forEach((el) => {
-            if (
-              clients[key].login == el.login ||
-              clients[key].login == data.login
-            )
-              clients[key].send(
-                JSON.stringify({
-                  type: "PartyUpdate",
-                  party: data.partyID,
-                })
-              );
-          });
+          if (players) {
+            players.forEach((el) => {
+              if (
+                clients[key].login == el.login ||
+                clients[key].login == data.login
+              )
+                clients[key].send(
+                  JSON.stringify({
+                    type: "PartyUpdate",
+                    party: data.partyID,
+                  })
+                );
+            });
+          }
+          if (clients[key].login == data.login)
+            clients[key].send(
+              JSON.stringify({
+                type: "PartyUpdate",
+                party: data.partyID,
+              })
+            );
         }
         break;
       case "CickPlayer":

@@ -10,7 +10,8 @@ router.get("/getAllGames", async (req, res) => {
 
 router.post("/party", async (req, res) => {
   let party = await partyController.getParty(req.body.partyId);
-  res.send(party);
+  if (party) res.send(party);
+  else res.send(party);
 });
 
 module.exports = router;

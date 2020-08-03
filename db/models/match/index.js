@@ -3,8 +3,8 @@ const Schema = mongoose.Schema;
 
 const activeMatches = new Schema({
   creatorLogin: String,
-  playersT1: Array,
-  playersT2: { type: Array, default: [] },
+  playersT1: [String],
+  playersT2: { type: [String], default: [] },
   creationDate: Date,
   matchNumber: Number,
   gameType: String,
