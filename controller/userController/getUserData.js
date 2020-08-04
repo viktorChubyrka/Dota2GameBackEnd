@@ -7,10 +7,10 @@ async function getUserData(login) {
     return {
       data: { status: 404, message: "No search user" },
     };
-
-  return {
-    data: { status: 200, message: "Ok", userModel },
-  };
+  else
+    return {
+      data: { status: 200, message: "Ok", userModel },
+    };
 }
 
 module.exports = getUserData;

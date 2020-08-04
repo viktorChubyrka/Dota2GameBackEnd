@@ -18,7 +18,7 @@ const router = express.Router();
 
 var type = upload.single("file");
 router.post("/sendFile", type, async function (req, res) {
-  let path = "https://dota2botbackend.herokuapp.com/" + req.file.filename;
+  let path = "https://safe-inlet-79254.herokuapp.com/" + req.file.filename;
   await userController.saveProfilePhoto(path, req.body.login);
 });
 router.get("/getAllUsers", async (req, res) => {
@@ -65,8 +65,7 @@ router.post("/getUserData", async (req, res) => {
 router.post("/", async (req, res) => {
   if (req.session.login) {
     res.send("200");
-  }
-  res.send("400");
+  } else res.send("400");
 });
 router.post("/changeName", async (req, res) => {
   console.log("sadsa");

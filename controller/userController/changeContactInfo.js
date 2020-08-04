@@ -2,7 +2,6 @@ const User = require("../../db/models/user");
 const validation = require("../../helpers/validators");
 
 async function changeContactInfo(data) {
-  console.log(data);
   let { login, loginChange, email, phone, steamID } = data;
   let userModel = await User.findOne({ login });
   if (userModel) {
@@ -18,10 +17,10 @@ async function changeContactInfo(data) {
     return {
       data: { status: 200, message: "" },
     };
-  }
-  return {
-    data: { status: 404, message: "No user find" },
-  };
+  } else
+    return {
+      data: { status: 404, message: "No user find" },
+    };
 }
 
 module.exports = changeContactInfo;
