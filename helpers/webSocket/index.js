@@ -2,6 +2,7 @@ const User = require("../../db/models/user");
 const Match = require("../../db/models/match");
 const Party = require("../../db/models/party");
 const partyController = require("../../controller/partyController");
+const bot = require("../../BOT/bot1");
 
 let enterPartyLobby = async (matchNumber, login) => {
   let user = await User.findOne({ login });
@@ -13,6 +14,11 @@ let enterPartyLobby = async (matchNumber, login) => {
       if (match.playersT1[0]) match.playersT2.push(party._id);
       else if (match.playersT2[0]) match.playersT1.push(party._id);
       await Match.updateOne({ matchNumber }, { $set: match });
+      let party1 = await Party.findOne({ _id: match.playersT1[0] });
+      let party2 = await Party.findOne({ _id: match.playersT2[0] });
+
+      if ([...party1.players, ...party2.players].length == 6)
+        console.log("Starting Bot");
     }
   }
 };
@@ -79,7 +85,6 @@ let SearchPartyGame = async (login, clients) => {
           { login, photo: user.photo, ready: user.ready, status: "inLobby" },
         ],
       });
-      console.log(partyMatches);
       partyCreated = await partyCreated.save();
       user.partyID = partyCreated._id;
       await User.updateOne({ login }, { $set: user });
@@ -100,6 +105,9 @@ let SearchPartyGame = async (login, clients) => {
             _id: match.playersT2[0],
           });
         let partyPlayers = [...partyPlayers1.players, ...partyPlayers2.players];
+        if (partyPlayers.length == 2) {
+          console.log("Starting Bot");
+        }
         user.ready = true;
         await User.updateOne({ login }, { $set: user });
         for (var key in clients) {
@@ -266,6 +274,9 @@ let enterLobby = async (matchNumber, login) => {
     if (match.playersT1.length < 5) match.playersT1.push(login);
     else if (match.playersT2.length < 5) match.playersT2.push(login);
     await Match.updateOne({ matchNumber }, { $set: match });
+    if (match.playersT1.length + match.playersT2.length == 2) {
+      console.log("Старт бота");
+    }
   }
   let user = await User.findOne({ login });
   user.ready = true;
@@ -332,13 +343,11 @@ let addToLobby = async (login) => {
   let userTest = await User.findOne({ login });
   if (userTest.partyID) {
     party = await Party.findOne({ _id: userTest.partyID });
-    console.log(1);
   }
   matches.forEach(async (el, index) => {
     if (el.playersT2.includes(login) || el.playersT1.includes(login)) {
       allReadyInLobby = true;
     }
-    console.log("match");
     if (
       party &&
       !el.playersT1.includes(party._id) &&
@@ -371,44 +380,52 @@ let addToLobby = async (login) => {
         }
       }
     } else if (party) {
-      console.log(3);
-      if (party.players.length == 5) console.log(4);
-      if (el.status == "upcoming") {
-        console.log(5);
-        if (el.gameType == "Party") {
-          console.log(6);
-          if (el.playersT1.length < 1) {
-            console.log(7);
-            el.playersT1.push(party._id);
-            flag = true;
-            await Match.updateOne(
-              { matchNumber: el.matchNumber },
-              { $set: el }
-            );
-            return;
-          } else if (el.playersT2.length < 1) {
-            console.log(8);
-            el.playersT2.push(party._id);
-            flag = true;
-            await Match.updateOne(
-              { matchNumber: el.matchNumber },
-              { $set: el }
-            );
-            return;
+      if (party.players.length == 5)
+        if (el.status == "upcoming") {
+          if (el.gameType == "Party") {
+            if (el.playersT1.length < 1) {
+              el.playersT1.push(party._id);
+              flag = true;
+              await Match.updateOne(
+                { matchNumber: el.matchNumber },
+                { $set: el }
+              );
+              return;
+            } else if (el.playersT2.length < 1) {
+              el.playersT2.push(party._id);
+              flag = true;
+              await Match.updateOne(
+                { matchNumber: el.matchNumber },
+                { $set: el }
+              );
+              return;
+            }
           }
         }
-      }
     } else {
       allReadyInLobby = true;
-      console.log(9);
     }
   });
   if (!allReadyInLobby && !userTest.partyID) {
-    console.log(10);
     if (playerCount) {
       if (teamNumber) matches[matchIndex].playersT2.push(login);
       else matches[matchIndex].playersT1.push(login);
       await Match.updateOne({ matchNumber }, { $set: matches[matchIndex] });
+      let users = [
+        ...matches[matchIndex].playersT1,
+        ...matches[matchIndex].playersT2,
+      ];
+      if (users.length == 2) {
+        matches[matchIndex].status = "playing";
+        await Match.updateOne({ matchNumber }, { $set: matches[matchIndex] });
+
+        for (let i = 0; i < users.length; i++) {
+          let user = await User.findOne({ login: users[i] });
+          users[i] = user;
+          user = null;
+        }
+        bot(users, matches[matchIndex]._id);
+      }
     } else {
       let matchNumber = "";
       for (let i = 0; i < 10; i++) {
@@ -425,7 +442,6 @@ let addToLobby = async (login) => {
       let a = await newMatch.save();
     }
   } else if (party && !flag) {
-    console.log(11);
     for (let i = 0; i < 10; i++) {
       matchNumber = matchNumber + Math.floor(Math.random() * Math.floor(10));
     }

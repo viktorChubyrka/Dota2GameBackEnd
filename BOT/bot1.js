@@ -11,11 +11,11 @@ var steam = require("steam"),
 var t1, t2, gamemode, pass;
 global.config = require("./configs/config1");
 
-var users = [];
 var lobbygame;
 var ready = 0;
 
-module.exports = () => {
+module.exports = (users, matchID) => {
+  console.log(users, matchID);
   function createLobby() {
     /*Конфиг лобби*/
     pass = Math.floor(Math.random() * 99999 + 1);
@@ -52,7 +52,7 @@ module.exports = () => {
     setInterval(function () {
       if (ready == 1) {
         users.forEach(function (item, i, arr) {
-          Dota2.inviteToLobby(item);
+          Dota2.inviteToLobby(item.steamID);
         });
         ready = 0;
       }
