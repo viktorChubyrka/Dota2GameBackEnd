@@ -200,8 +200,8 @@ module.exports = (webSocket) => {
                 setTimeout(function () {
                   Dota2.launchPracticeLobby(function (err, data) {});
                   launch = 1;
+                  Dota2.leavePracticeLobby();
                 }, 5000);
-                Dota2.leavePracticeLobby();
               }
             }
           });
