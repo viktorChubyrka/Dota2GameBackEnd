@@ -10,9 +10,9 @@ async function changeContactInfo(data) {
   );
   let readySteamID = {
     id: steamID,
-    name,
+    name: name.data.response.players[0].personaname,
   };
-  console.log(name.data.response);
+  console.log(name.data.response.players[0].personaname);
   let userModel = await User.findOne({ login });
   if (userModel) {
     if (validation.isEmailValid(email)) {
