@@ -12,7 +12,7 @@ async function changeContactInfo(data) {
     id: steamID,
     name,
   };
-  console.log(name);
+  console.log(name.data.response);
   let userModel = await User.findOne({ login });
   if (userModel) {
     if (validation.isEmailValid(email)) {
