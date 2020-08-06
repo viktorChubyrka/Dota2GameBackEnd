@@ -15,7 +15,7 @@ const userSchema = new Schema({
   password: String,
   steamID: {
     type: Object,
-    default: {},
+    default: { name: "", id: "" },
   },
   alphaAccount: Boolean,
   promoCode: String,
