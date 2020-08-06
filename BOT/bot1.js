@@ -22,7 +22,7 @@ let SetMatchResult = async (matchNumber, teamWin, players) => {
   for (let i = 0; i < players.length; i++) {
     let usersForFilter = matches[matchNumber];
     usersForFilter.filter((el) => {
-      el.steamID.login == players[i].name;
+      el.steamID.name == players[i].name;
     });
     let user = await User.findOne({ login: usersForFilter[0].login });
     matches[matchNumber].forEach(async (el, index) => {
