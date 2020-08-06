@@ -82,6 +82,7 @@ router.post("/changeName", async (req, res) => {
 });
 router.post("/changeContactInfo", async (req, res) => {
   if (req.session.login) {
+    if (req.body.login != req.session.login) req.session.login = req.body.login;
     let newUserData = await userController.changeContactInfo(req.body);
     res.send(newUserData);
   } else {
