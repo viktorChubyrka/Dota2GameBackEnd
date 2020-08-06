@@ -2,6 +2,7 @@ const http = require("http");
 const config = require("./config");
 const dbConnect = require("./db");
 const webSocket = require("./helpers/webSocket");
+const BOT = require("./BOT/bot1");
 
 (async () => {
   const app = require("./app");
@@ -16,6 +17,7 @@ const webSocket = require("./helpers/webSocket");
   wss.on("connection", function connection(ws) {
     webSocket(ws);
   });
+  BOT(wss);
 
   httpServer.listen(config.PORT || 5000);
   console.log(`App listen ${config.PORT || 5000}`);

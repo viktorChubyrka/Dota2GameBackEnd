@@ -2,7 +2,6 @@ const User = require("../../db/models/user");
 const Match = require("../../db/models/match");
 const Party = require("../../db/models/party");
 const partyController = require("../../controller/partyController");
-const bot = require("../../BOT/bot1");
 
 let enterPartyLobby = async (matchNumber, login) => {
   let user = await User.findOne({ login });
@@ -16,9 +15,6 @@ let enterPartyLobby = async (matchNumber, login) => {
       await Match.updateOne({ matchNumber }, { $set: match });
       let party1 = await Party.findOne({ _id: match.playersT1[0] });
       let party2 = await Party.findOne({ _id: match.playersT2[0] });
-
-      if ([...party1.players, ...party2.players].length == 6)
-        console.log("Starting Bot");
     }
   }
 };
@@ -105,9 +101,7 @@ let SearchPartyGame = async (login, clients) => {
             _id: match.playersT2[0],
           });
         let partyPlayers = [...partyPlayers1.players, ...partyPlayers2.players];
-        if (partyPlayers.length == 2) {
-          console.log("Starting Bot");
-        }
+
         user.ready = true;
         await User.updateOne({ login }, { $set: user });
         for (var key in clients) {
@@ -415,17 +409,6 @@ let addToLobby = async (login) => {
         ...matches[matchIndex].playersT1,
         ...matches[matchIndex].playersT2,
       ];
-      if (users.length == 2) {
-        matches[matchIndex].status = "playing";
-        await Match.updateOne({ matchNumber }, { $set: matches[matchIndex] });
-
-        for (let i = 0; i < users.length; i++) {
-          let user = await User.findOne({ login: users[i] });
-          users[i] = user;
-          user = null;
-        }
-        bot(users, matches[matchIndex]._id);
-      }
     } else {
       let matchNumber = "";
       for (let i = 0; i < 10; i++) {
@@ -665,7 +648,6 @@ module.exports = async (ws) => {
   console.log("новое соединение " + id);
   await ws.on("message", async function (message) {
     let data = JSON.parse(message);
-    console.log(data.type);
     switch (data.type) {
       case "SetActive":
         let partyID = await setUserActive(data.login);

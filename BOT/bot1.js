@@ -8,34 +8,109 @@ var steam = require("steam"),
   steamFriends = new steam.SteamFriends(steamClient),
   Dota2 = new dota2.Dota2Client(steamClient, true);
 
-var t1, t2, gamemode, pass;
+const User = require("../db/models/user");
+const Match = require("../db/models/match");
+const Party = require("../db/models/party");
+
 global.config = require("./configs/config1");
-
+let users = [];
+let matches = {};
 var lobbygame;
-var ready = 0;
+var ready;
+let SetMatchResult = async (matchNumber, teamWin, players) => {
+  let match = await Match.findOne({ matchNumber });
+  for (let i = 0; i < players.length; i++) {
+    let usersForFilter = matches[matchNumber];
+    usersForFilter.filter((el) => {
+      el.steamID.login == players[i].name;
+    });
+    let user = await User.findOne({ login: usersForFilter[0].login });
+    matches[matchNumber].forEach(async (el, index) => {
+      if (el.login == user.login) {
+        if (el.team == teamWin) {
+          match.status = "win";
+          user.matches.push(match);
+        } else {
+          match.status = "lose";
+          user.matches.push(match);
+        }
+      }
+    });
+  }
+  await Match.deleteOne({ matchNumber });
+};
+let StartGame = async (data) => {
+  let { matchNumber, matchType, type } = data;
+  console.log(matchNumber);
+  let match = await Match.findOne({ matchNumber });
+  if (matchType == "Solo") {
+    let players = [...match.playersT1, ...match.playersT2];
+    players.forEach(async (el) => {
+      let user = await User.findOne({ login: el });
+      users.push(user);
+    });
+    users.filter((el) => el.ready == true);
+    console.log(users);
+    if (users.length == 1) {
+      match.status = "playing";
+      ready = 1;
+      await Match.updateOne({ matchNumber }, { $set: match });
+      return {
+        status: "OK",
+        users,
+        matchNumber,
+      };
+    } else {
+      return { status: "NOT" };
+    }
+  } else {
+    if (match && match.playersT1[0] && match.playersT2[0]) {
+      let party1 = await Party.findOne({ _id: match.playersT1[0] });
+      let party2 = await Party.findOne({ _id: match.playersT2[0] });
+      let players = [...party1.players, ...party2.players];
+      players.forEach(async (el) => {
+        let user = await User.findOne({ login: el.login });
+        users.push(user);
+      });
+      users.filterl((el) => el.ready == true);
+      if (users.length == 10) {
+        match.status = "playing";
+        ready = 1;
+        await Match.updateOne({ matchNumber }, { $set: match });
+        return {
+          status: "OK",
+          users,
+          matchNumber,
+        };
+      } else {
+        return { status: "NOT" };
+      }
+    } else {
+      return { status: "NOT" };
+    }
+  }
+};
 
-module.exports = (users, matchID) => {
-  console.log(users, matchID);
-  function createLobby() {
+module.exports = (webSocket) => {
+  function createLobby(matchNumber) {
     /*Конфиг лобби*/
-    pass = Math.floor(Math.random() * 99999 + 1);
-    pass = pass + "_" + lobbygame;
+
     var options = {
-      game_name: "Игра #" + lobbygame,
+      game_name: "Match #" + matchNumber,
       server_region: 3,
-      game_mode: gamemode,
+      game_mode: 1,
       game_version: 1,
       allow_cheats: true,
       fill_with_bots: false,
       allow_spectating: true,
-      pass_key: pass,
+      pass_key: matchNumber + "",
       radiant_series_wins: 0,
       dire_series_wins: 0,
       allchat: false,
     };
     /*Конец конфига*/
 
-    Dota2.createPracticeLobby(options.pass_key, options, function (err, data) {
+    Dota2.createPracticeLobby(options, function (err, data) {
       if (JSON.stringify(data["result"]) == 1) {
         console.log("Лобби успешно создано");
       } else {
@@ -52,7 +127,7 @@ module.exports = (users, matchID) => {
     setInterval(function () {
       if (ready == 1) {
         users.forEach(function (item, i, arr) {
-          Dota2.inviteToLobby(item.steamID);
+          Dota2.inviteToLobby(item.steamID.id);
         });
         ready = 0;
       }
@@ -66,13 +141,26 @@ module.exports = (users, matchID) => {
         console.log("Авторизован.");
         Dota2.launch();
         Dota2.on("ready", function () {
-          var date = new Date();
-
+          Dota2.leavePracticeLobby();
           console.log("Бот готов.");
-          /*Создаем лобби*/
-          createLobby();
-          /*Лобии создано*/
-          Dota2.on("practiceLobbyUpdate", function (lobby) {
+          webSocket.on("connection", function connection(ws) {
+            ws.on("message", async function (message) {
+              let data = JSON.parse(message);
+              console.log(data);
+              switch (data.type) {
+                case "StartGame":
+                  let matchData = await StartGame(data);
+                  if (matchData.status == "OK") {
+                    createLobby(matchData.matchNumber);
+                    matches[matchData.matchNumber + ""] = matchData.users;
+                  }
+                  break;
+                default:
+                  break;
+              }
+            });
+          });
+          Dota2.on("practiceLobbyUpdate", async function (lobby) {
             id = lobby.lobby_id + "";
             var status = lobby.match_outcome;
             var chat = 0;
@@ -80,52 +168,40 @@ module.exports = (users, matchID) => {
               Dota2.joinChat("Lobby_" + id, 3);
             }
             if (status != 0) {
-              connection.query(
-                "UPDATE ladder_lobbies_games SET lobby_g_result= " +
-                  status +
-                  " WHERE lobby_g_id = " +
-                  lobbygame
-              );
               switch (status) {
                 case 1: //Победа тьмы
-                  connection.query(
-                    "UPDATE ladder_lobbies_games SET lobby_g_winner= " +
-                      t1 +
-                      " WHERE lobby_g_id = " +
-                      lobbygame
+                  await SetMatchResult(
+                    lobby.game_name.split("#")[1],
+                    status,
+                    lobby["members"]
                   );
                   break;
                 case 2: //Победа света
-                  connection.query(
-                    "UPDATE ladder_lobbies_games SET lobby_g_winner= " +
-                      t2 +
-                      " WHERE lobby_g_id = " +
-                      lobbygame
+                  await SetMatchResult(
+                    lobby.game_name.split("#")[1],
+                    status,
+                    lobby["members"]
                   );
                   break;
               }
             }
             var pn;
-            var pnn = 0;
             lobby["members"].forEach(function (item, i, arr) {
               pn = i + 1;
+              console.log(pn);
             });
-            if (pn == 3) {
-              var laucnh = 0;
-              if ((launch = 0)) {
+            if (pn == 2) {
+              var launch = 0;
+              if (launch == 0) {
                 Dota2.sendMessage(
                   "Lobby_" + id,
                   "Игра начнется через 5 секунд!."
                 );
                 setTimeout(function () {
                   Dota2.launchPracticeLobby(function (err, data) {});
-                  laucnh = 1;
-                  steamFriends.sendMessage(
-                    "76561198107070247",
-                    "Игра #" + id + " была начата!",
-                    steam.EChatEntryType.ChatMsg
-                  );
+                  launch = 1;
                 }, 5000);
+                Dota2.leavePracticeLobby();
               }
             }
           });
@@ -136,7 +212,7 @@ module.exports = (users, matchID) => {
         });
 
         Dota2.on("chatMessage", function (channel, personaName, message) {
-          chat.trace("[" + channel + "] " + personaName + ": " + message);
+          console.log("[" + channel + "] " + personaName + ": " + message);
         });
 
         Dota2.on("unhandled", function (kMsg) {
@@ -154,70 +230,70 @@ module.exports = (users, matchID) => {
     onSteamError = function onSteamError(error) {
       console.log("Connection closed by server.");
     };
-  steamFriends.on("message", function (source, message, type, chatter) {
-    console.log("Получено сообщение: " + message);
-    switch (message) {
-      case "Покинуть":
-        Dota2.abandonCurrentGame();
-        Dota2.leavePracticeLobby();
-        Dota2.leaveChat("Lobby_" + id);
-        steamFriends.sendMessage(
-          source,
-          "Покинул лобби #" + id,
-          steam.EChatEntryType.ChatMsg
-        );
-        id = null;
-        break;
-      case "Статус":
-        if (id != null) {
-          var answer = "Нахожусь в лобби #" + id + ". Пароль от лобби: " + pass;
-          steamFriends.sendMessage(
-            source,
-            answer,
-            steam.EChatEntryType.ChatMsg
-          );
-        } else {
-          steamFriends.sendMessage(
-            source,
-            "Ожидаю игру.",
-            steam.EChatEntryType.ChatMsg
-          );
-        }
-        break;
-      case "Создать":
-        createLobby();
-        break;
-      case "Пригласить админов":
-        Dota2.inviteToLobby("76561198107070247");
-        steamFriends.sendMessage(
-          source,
-          "Приглашение для админов было отправленно!" + source,
-          steam.EChatEntryType.ChatMsg
-        );
-        break;
-      case "Офф":
-        Dota2.abandonCurrentGame();
-        Dota2.leavePracticeLobby();
-        Dota2.leaveChat("Lobby_" + id);
-        Dota2.exit();
-        steamClient.disconnect();
+  // steamFriends.on("message", function (source, message, type, chatter) {
+  //   console.log("Получено сообщение: " + message);
+  //   switch (message) {
+  //     case "Покинуть":
+  //       Dota2.abandonCurrentGame();
+  //       Dota2.leavePracticeLobby();
+  //       Dota2.leaveChat("Lobby_" + id);
+  //       steamFriends.sendMessage(
+  //         source,
+  //         "Покинул лобби #" + id,
+  //         steam.EChatEntryType.ChatMsg
+  //       );
+  //       id = null;
+  //       break;
+  //     case "Статус":
+  //       if (id != null) {
+  //         var answer = "Нахожусь в лобби #" + id + ". Пароль от лобби: " + pass;
+  //         steamFriends.sendMessage(
+  //           source,
+  //           answer,
+  //           steam.EChatEntryType.ChatMsg
+  //         );
+  //       } else {
+  //         steamFriends.sendMessage(
+  //           source,
+  //           "Ожидаю игру.",
+  //           steam.EChatEntryType.ChatMsg
+  //         );
+  //       }
+  //       break;
+  //     case "Создать":
+  //       createLobby();
+  //       break;
+  //     case "Пригласить админов":
+  //       Dota2.inviteToLobby("76561198107070247");
+  //       steamFriends.sendMessage(
+  //         source,
+  //         "Приглашение для админов было отправленно!" + source,
+  //         steam.EChatEntryType.ChatMsg
+  //       );
+  //       break;
+  //     case "Офф":
+  //       Dota2.abandonCurrentGame();
+  //       Dota2.leavePracticeLobby();
+  //       Dota2.leaveChat("Lobby_" + id);
+  //       Dota2.exit();
+  //       steamClient.disconnect();
 
-        break;
-      case "Начать игру":
-        Dota2.launchPracticeLobby(function (err, data) {});
-        var answer = "Игра #" + id + " была начата!";
-        steamFriends.sendMessage(source, answer, steam.EChatEntryType.ChatMsg);
-        break;
-      case "Кикнуть":
-        Dota2.practiceLobbyKickFromTeam(Dota2.ToAccountID("76561198107070247"));
-        steamFriends.sendMessage(
-          source,
-          "Игрок кикнут",
-          steam.EChatEntryType.ChatMsg
-        );
-        break;
-    }
-  });
+  //       break;
+  //     case "Начать игру":
+  //       Dota2.launchPracticeLobby(function (err, data) {});
+  //       var answer = "Игра #" + id + " была начата!";
+  //       steamFriends.sendMessage(source, answer, steam.EChatEntryType.ChatMsg);
+  //       break;
+  //     case "Кикнуть":
+  //       Dota2.practiceLobbyKickFromTeam(Dota2.ToAccountID("76561198107070247"));
+  //       steamFriends.sendMessage(
+  //         source,
+  //         "Игрок кикнут",
+  //         steam.EChatEntryType.ChatMsg
+  //       );
+  //       break;
+  //   }
+  // });
   steamUser.on("updateMachineAuth", function (sentry, callback) {
     fs.writeFileSync("sentry", sentry.bytes);
     console.log("sentryfile saved");
