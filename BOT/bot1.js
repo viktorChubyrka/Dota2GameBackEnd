@@ -19,20 +19,24 @@ var lobbygame;
 var ready;
 let SetMatchResult = async (matchNumber, teamWin, players) => {
   let match = await Match.findOne({ matchNumber });
+
   for (let i = 0; i < players.length; i++) {
     let usersForFilter = matches[matchNumber];
+
     usersForFilter.filter((el) => {
       el.steamID.name == players[i].name;
     });
     let user = await User.findOne({ login: usersForFilter[0].login });
-    matches[matchNumber].forEach(async (el, index) => {
-      if (el.login == user.login) {
+    players.forEach(async (el, index) => {
+      if (el.name == user.steamID.name) {
         if (el.team == teamWin) {
           match.status = "win";
           user.matches.push(match);
+          await User.updateOne({ login: user.login }, { $set: user });
         } else {
           match.status = "lose";
           user.matches.push(match);
+          await User.updateOne({ login: user.login }, { $set: user });
         }
       }
     });
@@ -41,17 +45,15 @@ let SetMatchResult = async (matchNumber, teamWin, players) => {
 };
 let StartGame = async (data) => {
   let { matchNumber, matchType, type } = data;
-  console.log(matchNumber);
   let match = await Match.findOne({ matchNumber });
   if (matchType == "Solo") {
     let players = [...match.playersT1, ...match.playersT2];
-    players.forEach(async (el) => {
-      let user = await User.findOne({ login: el });
+    for (let i = 0; i < players.length; i++) {
+      let user = await User.findOne({ login: players[i] });
       users.push(user);
-    });
+    }
     users.filter((el) => el.ready == true);
-    console.log(users);
-    if (users.length == 1) {
+    if (users.length == 10) {
       match.status = "playing";
       ready = 1;
       await Match.updateOne({ matchNumber }, { $set: match });
@@ -141,7 +143,6 @@ module.exports = (webSocket) => {
         console.log("Авторизован.");
         Dota2.launch();
         Dota2.on("ready", function () {
-          Dota2.leavePracticeLobby();
           console.log("Бот готов.");
           webSocket.on("connection", function connection(ws) {
             ws.on("message", async function (message) {
@@ -170,6 +171,8 @@ module.exports = (webSocket) => {
             if (status != 0) {
               switch (status) {
                 case 1: //Победа тьмы
+                  console.log("Победа тьмы");
+                  status = 1;
                   await SetMatchResult(
                     lobby.game_name.split("#")[1],
                     status,
@@ -177,6 +180,8 @@ module.exports = (webSocket) => {
                   );
                   break;
                 case 2: //Победа света
+                  console.log("Победа света");
+                  status = 0;
                   await SetMatchResult(
                     lobby.game_name.split("#")[1],
                     status,
@@ -187,8 +192,10 @@ module.exports = (webSocket) => {
             }
             var pn;
             lobby["members"].forEach(function (item, i, arr) {
-              pn = i + 1;
-              console.log(pn);
+              if (item.team == 1 || item.team == 0) {
+                pn = i + 1;
+                console.log(pn);
+              }
             });
             if (pn == 2) {
               var launch = 0;
@@ -203,7 +210,7 @@ module.exports = (webSocket) => {
                   Dota2.leavePracticeLobby();
                 }, 5000);
               }
-            }
+            } else pn = 0;
           });
         });
 
