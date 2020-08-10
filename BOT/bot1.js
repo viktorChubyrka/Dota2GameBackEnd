@@ -197,7 +197,7 @@ module.exports = (webSocket) => {
                 console.log(pn);
               }
             });
-            if (pn == 2) {
+            if (pn == 3) {
               var launch = 0;
               if (launch == 0) {
                 Dota2.sendMessage(
