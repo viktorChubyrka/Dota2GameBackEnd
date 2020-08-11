@@ -155,6 +155,7 @@ module.exports = (webSocket) => {
               switch (data.type) {
                 case "StartGame":
                   let matchData = await StartGame(data);
+                  console.log(matchData);
                   if (matchData.status == "OK") {
                     createLobby(matchData.matchNumber);
                     matches[matchData.matchNumber + ""] = matchData.users;
