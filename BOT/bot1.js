@@ -16,6 +16,7 @@ global.config = require("./configs/config1");
 let users = [];
 let matches = {};
 var lobbygame;
+var clients = {};
 var ready;
 let SetMatchResult = async (matchNumber, teamWin, players) => {
   let match = await Match.findOne({ matchNumber });
@@ -145,6 +146,9 @@ module.exports = (webSocket) => {
         Dota2.on("ready", function () {
           console.log("Бот готов.");
           webSocket.on("connection", function connection(ws) {
+            var id = Math.random();
+            clients[id] = ws;
+            console.log("новое соединение " + id);
             ws.on("message", async function (message) {
               let data = JSON.parse(message);
               console.log(data);
@@ -154,6 +158,14 @@ module.exports = (webSocket) => {
                   if (matchData.status == "OK") {
                     createLobby(matchData.matchNumber);
                     matches[matchData.matchNumber + ""] = matchData.users;
+                    for (var key in clients) {
+                      clients[key].send(
+                        JSON.stringify({
+                          type: "LobbyUpdate",
+                          Tab: 2,
+                        })
+                      );
+                    }
                   }
                   break;
                 default:
