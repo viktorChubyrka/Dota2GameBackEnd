@@ -30,6 +30,8 @@ let SetMatchResult = async (matchNumber, teamWin, players) => {
     let user = await User.findOne({ login: usersForFilter[0].login });
     players.forEach(async (el, index) => {
       if (el.name == user.steamID.name) {
+        console.log(el.name);
+        console.log(user.steamID);
         if (el.team == teamWin) {
           match.status = "win";
           user.matches.push(match);
