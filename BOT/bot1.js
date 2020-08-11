@@ -96,8 +96,6 @@ let StartGame = async (data) => {
 
 module.exports = (webSocket) => {
   function createLobby(matchNumber) {
-    /*Конфиг лобби*/
-
     var options = {
       game_name: "Match #" + matchNumber,
       server_region: 3,
@@ -178,7 +176,7 @@ module.exports = (webSocket) => {
             var status = lobby.match_outcome;
             var chat = 0;
             if (chat == 0) {
-              Dota2.joinChat("Lobby_" + id, 3);
+              Dota2.joinChat(lobby.game_name, 3);
             }
             if (status != 0) {
               switch (status) {
@@ -209,11 +207,11 @@ module.exports = (webSocket) => {
                 console.log(pn);
               }
             });
-            if (pn == 3) {
+            if (pn == 2) {
               var launch = 0;
               if (launch == 0) {
                 Dota2.sendMessage(
-                  "Lobby_" + id,
+                  lobby.game_name,
                   "Игра начнется через 5 секунд!."
                 );
                 setTimeout(function () {
