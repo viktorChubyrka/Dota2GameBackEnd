@@ -50,6 +50,7 @@ let StartGame = async (data) => {
     for (let i = 0; i < players.length; i++) {
       let user = await User.findOne({ login: players[i] });
       users.push(user);
+      user = {};
     }
     users.filter((el) => el.ready == true);
     console.log(users);
