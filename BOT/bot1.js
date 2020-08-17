@@ -216,7 +216,6 @@ module.exports = (webSocket) => {
             Dota2.on("chatMessage", function (channel, personaName, message) {
               console.log("[" + channel + "] " + personaName + ": " + message);
             });
-            w;
             var pn;
             lobby["members"].forEach(function (item, i, arr) {
               if (item.team == 1 || item.team == 0) {
