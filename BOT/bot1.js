@@ -64,6 +64,7 @@ let StartGame = async (data) => {
         matchNumber,
       };
     } else {
+      users = [];
       return { status: "NOT" };
     }
   } else {
