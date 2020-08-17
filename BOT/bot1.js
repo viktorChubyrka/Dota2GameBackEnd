@@ -52,6 +52,7 @@ let StartGame = async (data) => {
       users.push(user);
     }
     users.filter((el) => el.ready == true);
+    console.log(users);
     if (users.length == 2) {
       match.status = "playing";
       ready = 1;
