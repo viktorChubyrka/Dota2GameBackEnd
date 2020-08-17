@@ -15,39 +15,35 @@ const Party = require("../db/models/party");
 global.config = require("./configs/config1");
 let users = [];
 let matches = {};
-var lobbygame;
 var clients = {};
 var ready;
 let SetMatchResult = async (matchNumber, teamWin, players) => {
   let match = await Match.findOne({ matchNumber });
-
   for (let i = 0; i < players.length; i++) {
-    let usersForFilter = matches[matchNumber];
-
-    usersForFilter.filter((el) => {
-      el.steamID.name == players[i].name;
-    });
-    let user = await User.findOne({ login: usersForFilter[0].login });
-    players.forEach(async (el, index) => {
-      if (el.name == user.steamID.name) {
-        console.log(el.name);
-        console.log(user.steamID);
-        if (el.team == teamWin) {
-          match.status = "win";
-          user.matches.push(match);
-          await User.updateOne({ login: user.login }, { $set: user });
-        } else {
-          match.status = "lose";
-          user.matches.push(match);
-          await User.updateOne({ login: user.login }, { $set: user });
-        }
+    let user = await User.findOne({ "steamID.name": players[i].name });
+    if (user) {
+      if (players[i].team == teamWin) {
+        match.status = "win";
+        user.matches.push(match);
+        await User.updateOne({ login: user.login }, { $set: user });
+        user = {};
+      } else {
+        match.status = "lose";
+        user.matches.push(match);
+        await User.updateOne({ login: user.login }, { $set: user });
+        user = {};
       }
-    });
+    }
+
+    if (el.name == user.steamID.name) {
+      console.log(el.name);
+      console.log(user.steamID);
+    }
   }
   await Match.deleteOne({ matchNumber });
 };
 let StartGame = async (data) => {
-  let { matchNumber, matchType, type } = data;
+  let { matchNumber, matchType } = data;
   let match = await Match.findOne({ matchNumber });
   if (matchType == "Solo") {
     let players = [...match.playersT1, ...match.playersT2];
@@ -56,7 +52,7 @@ let StartGame = async (data) => {
       users.push(user);
     }
     users.filter((el) => el.ready == true);
-    if (users.length == 2) {
+    if (users.length == 4) {
       match.status = "playing";
       ready = 1;
       await Match.updateOne({ matchNumber }, { $set: match });
@@ -78,7 +74,7 @@ let StartGame = async (data) => {
         users.push(user);
       });
       users.filterl((el) => el.ready == true);
-      if (users.length == 2) {
+      if (users.length == 4) {
         match.status = "playing";
         ready = 1;
         await Match.updateOne({ matchNumber }, { $set: match });
@@ -97,7 +93,7 @@ let StartGame = async (data) => {
 };
 
 module.exports = (webSocket) => {
-  function createLobby(matchNumber) {
+  function createLobby(matchNumber, matchUsers) {
     var options = {
       game_name: "Match #" + matchNumber,
       server_region: 3,
@@ -126,6 +122,15 @@ module.exports = (webSocket) => {
         console.log("Бот занял место наблюдателя.");
       }
     });
+    Dota2.joinChat("Match #" + matchNumber, 3);
+    matchUsers.forEach((el, index) => {
+      if (index == 0)
+        Dota2.sendMessage("Команда сил света:", "Match #" + matchNumber, 3);
+      if (index == 5)
+        Dota2.sendMessage("Команда сил тьмы:", "Match #" + matchNumber, 3);
+      Dota2.sendMessage(el.steamID.name, "Match #" + matchNumber, 3);
+    });
+
     /*Invites*/
     setInterval(function () {
       if (ready == 1) {
@@ -140,7 +145,7 @@ module.exports = (webSocket) => {
   var onSteamLogOn = function onSteamLogOn(logonResp) {
       if (logonResp.eresult == steam.EResult.OK) {
         steamFriends.setPersonaState(steam.EPersonaState.Busy);
-        steamFriends.setPersonaName("cGame.info|BOT #");
+        steamFriends.setPersonaName("Darevin's club");
         console.log("Авторизован.");
         Dota2.launch();
         Dota2.on("ready", function () {
@@ -157,7 +162,7 @@ module.exports = (webSocket) => {
                   let matchData = await StartGame(data);
                   console.log(matchData);
                   if (matchData.status == "OK") {
-                    createLobby(matchData.matchNumber);
+                    createLobby(matchData.matchNumber, matchData.users);
                     matches[matchData.matchNumber + ""] = matchData.users;
                     for (var key in clients) {
                       clients[key].send(
