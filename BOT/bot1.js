@@ -189,7 +189,7 @@ module.exports = (webSocket) => {
             if (status != 0) {
               console.log("status", status);
               switch (status) {
-                case 1: //Победа тьмы
+                case 3: //Победа тьмы
                   console.log("Победа тьмы");
                   status = 1;
                   await SetMatchResult(
