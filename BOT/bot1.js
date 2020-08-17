@@ -241,9 +241,9 @@ module.exports = (webSocket) => {
           console.log("Node-dota2 unready.");
         });
 
-        // Dota2.on("chatMessage", function (channel, personaName, message) {
-        //   console.log("[" + channel + "] " + personaName + ": " + message);
-        // });
+        Dota2.on("chatMessage", function (channel, personaName, message) {
+          console.log("[" + channel + "] " + personaName + ": " + message);
+        });
 
         Dota2.on("unhandled", function (kMsg) {
           console.log("UNHANDLED MESSAGE #" + kMsg);
