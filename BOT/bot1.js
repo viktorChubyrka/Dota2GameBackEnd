@@ -214,7 +214,7 @@ module.exports = (webSocket) => {
             var pn;
             lobby["members"].forEach(function (item, i, arr) {
               if (item.team == 1 || item.team == 0) {
-                pn = i + 1;
+                pn = i;
                 console.log(pn);
               }
             });
