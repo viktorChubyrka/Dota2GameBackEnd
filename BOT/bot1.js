@@ -34,11 +34,6 @@ let SetMatchResult = async (matchNumber, teamWin, players) => {
         user = {};
       }
     }
-
-    if (el.name == user.steamID.name) {
-      console.log(el.name);
-      console.log(user.steamID);
-    }
   }
   await Match.deleteOne({ matchNumber });
 };
