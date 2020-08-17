@@ -39,39 +39,17 @@ let SetMatchResult = async (matchNumber, teamWin, players) => {
 };
 let StartGame = async (data) => {
   let { matchNumber, matchType } = data;
-  let match = await Match.findOne({ matchNumber });
-  if (matchType == "Solo") {
-    let players = [...match.playersT1, ...match.playersT2];
-    for (let i = 0; i < players.length; i++) {
-      let user = await User.findOne({ login: players[i] });
-      users.push(user);
-      user = {};
-    }
-    users.filter((el) => el.ready == true);
-    console.log(users);
-    if (users.length == 2) {
-      match.status = "playing";
-      ready = 1;
-      await Match.updateOne({ matchNumber }, { $set: match });
-      return {
-        status: "OK",
-        users,
-        matchNumber,
-      };
-    } else {
-      users = [];
-      return { status: "NOT" };
-    }
-  } else {
-    if (match && match.playersT1[0] && match.playersT2[0]) {
-      let party1 = await Party.findOne({ _id: match.playersT1[0] });
-      let party2 = await Party.findOne({ _id: match.playersT2[0] });
-      let players = [...party1.players, ...party2.players];
-      players.forEach(async (el) => {
-        let user = await User.findOne({ login: el.login });
+  if (matchNumber) {
+    let match = await Match.findOne({ matchNumber });
+    if (matchType == "Solo") {
+      let players = [...match.playersT1, ...match.playersT2];
+      for (let i = 0; i < players.length; i++) {
+        let user = await User.findOne({ login: players[i] });
         users.push(user);
-      });
-      users.filterl((el) => el.ready == true);
+        user = {};
+      }
+      users.filter((el) => el.ready == true);
+      console.log(users);
       if (users.length == 2) {
         match.status = "playing";
         ready = 1;
@@ -82,10 +60,34 @@ let StartGame = async (data) => {
           matchNumber,
         };
       } else {
+        users = [];
         return { status: "NOT" };
       }
     } else {
-      return { status: "NOT" };
+      if (match && match.playersT1[0] && match.playersT2[0]) {
+        let party1 = await Party.findOne({ _id: match.playersT1[0] });
+        let party2 = await Party.findOne({ _id: match.playersT2[0] });
+        let players = [...party1.players, ...party2.players];
+        players.forEach(async (el) => {
+          let user = await User.findOne({ login: el.login });
+          users.push(user);
+        });
+        users.filterl((el) => el.ready == true);
+        if (users.length == 2) {
+          match.status = "playing";
+          ready = 1;
+          await Match.updateOne({ matchNumber }, { $set: match });
+          return {
+            status: "OK",
+            users,
+            matchNumber,
+          };
+        } else {
+          return { status: "NOT" };
+        }
+      } else {
+        return { status: "NOT" };
+      }
     }
   }
 };
