@@ -52,7 +52,7 @@ let StartGame = async (data) => {
       }
       users.filter((el) => el.ready == true);
       console.log(users);
-      if (users.length == 2) {
+      if (users.length == 4) {
         match.status = "playing";
         ready = 1;
         await Match.updateOne({ matchNumber }, { $set: match });
@@ -75,7 +75,7 @@ let StartGame = async (data) => {
           users.push(user);
         });
         users.filterl((el) => el.ready == true);
-        if (users.length == 2) {
+        if (users.length == 4) {
           match.status = "playing";
           ready = 1;
           await Match.updateOne({ matchNumber }, { $set: match });
@@ -213,6 +213,10 @@ module.exports = (webSocket) => {
                   break;
               }
             }
+            Dota2.on("chatMessage", function (channel, personaName, message) {
+              console.log("[" + channel + "] " + personaName + ": " + message);
+            });
+            w;
             var pn;
             lobby["members"].forEach(function (item, i, arr) {
               if (item.team == 1 || item.team == 0) {
@@ -220,7 +224,7 @@ module.exports = (webSocket) => {
                 console.log(pn);
               }
             });
-            if (pn == 2) {
+            if (pn == 4) {
               var launch = 0;
               if (launch == 0) {
                 Dota2.sendMessage(
@@ -239,10 +243,6 @@ module.exports = (webSocket) => {
 
         Dota2.on("unready", function onUnready() {
           console.log("Node-dota2 unready.");
-        });
-
-        Dota2.on("chatMessage", function (channel, personaName, message) {
-          console.log("[" + channel + "] " + personaName + ": " + message);
         });
 
         Dota2.on("unhandled", function (kMsg) {
