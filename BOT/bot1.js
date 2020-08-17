@@ -18,24 +18,26 @@ let matches = {};
 var clients = {};
 var ready;
 let SetMatchResult = async (matchNumber, teamWin, players) => {
-  let match = await Match.findOne({ matchNumber });
-  for (let i = 0; i < players.length; i++) {
-    let user = await User.findOne({ "steamID.name": players[i].name });
-    if (user) {
-      if (players[i].team == teamWin) {
-        match.status = "win";
-        user.matches.push(match);
-        await User.updateOne({ login: user.login }, { $set: user });
-        user = {};
-      } else {
-        match.status = "lose";
-        user.matches.push(match);
-        await User.updateOne({ login: user.login }, { $set: user });
-        user = {};
+  if (matchNumber) {
+    let match = await Match.findOne({ matchNumber });
+    for (let i = 0; i < players.length; i++) {
+      let user = await User.findOne({ "steamID.name": players[i].name });
+      if (user) {
+        if (players[i].team == teamWin) {
+          match.status = "win";
+          user.matches.push(match);
+          await User.updateOne({ login: user.login }, { $set: user });
+          user = {};
+        } else {
+          match.status = "lose";
+          user.matches.push(match);
+          await User.updateOne({ login: user.login }, { $set: user });
+          user = {};
+        }
       }
     }
+    await Match.deleteOne({ matchNumber });
   }
-  await Match.deleteOne({ matchNumber });
 };
 let StartGame = async (data) => {
   let { matchNumber, matchType } = data;
@@ -197,6 +199,7 @@ module.exports = (webSocket) => {
                     status,
                     lobby["members"]
                   );
+                  launch = 1;
                   break;
                 case 2: //Победа света
                   console.log("Победа света");
@@ -206,6 +209,7 @@ module.exports = (webSocket) => {
                     status,
                     lobby["members"]
                   );
+                  launch = 1;
                   break;
               }
             }
