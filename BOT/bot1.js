@@ -103,7 +103,7 @@ module.exports = (webSocket) => {
       pass_key: matchNumber + "",
       radiant_series_wins: 0,
       dire_series_wins: 0,
-      allchat: false,
+      allchat: true,
     };
     /*Конец конфига*/
 
@@ -120,7 +120,7 @@ module.exports = (webSocket) => {
         console.log("Бот занял место наблюдателя.");
       }
     });
-    Dota2.joinChat("Match #" + matchNumber, 3);
+    // Dota2.joinChat("Match #" + matchNumber, 3);
     matchUsers.forEach((el, index) => {
       if (index == 0)
         Dota2.sendMessage("Команда сил света:", "Match #" + matchNumber, 3);
@@ -180,10 +180,10 @@ module.exports = (webSocket) => {
           Dota2.on("practiceLobbyUpdate", async function (lobby) {
             id = lobby.lobby_id + "";
             var status = lobby.match_outcome;
-            var chat = 0;
-            if (chat == 0) {
-              Dota2.joinChat(lobby.game_name, 3);
-            }
+            // var chat = 0;
+            // if (chat == 0) {
+            //   Dota2.joinChat(lobby.game_name, 3);
+            // }
             if (status != 0) {
               switch (status) {
                 case 1: //Победа тьмы
@@ -234,9 +234,9 @@ module.exports = (webSocket) => {
           console.log("Node-dota2 unready.");
         });
 
-        Dota2.on("chatMessage", function (channel, personaName, message) {
-          console.log("[" + channel + "] " + personaName + ": " + message);
-        });
+        // Dota2.on("chatMessage", function (channel, personaName, message) {
+        //   console.log("[" + channel + "] " + personaName + ": " + message);
+        // });
 
         Dota2.on("unhandled", function (kMsg) {
           console.log("UNHANDLED MESSAGE #" + kMsg);
