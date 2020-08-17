@@ -52,7 +52,7 @@ let StartGame = async (data) => {
       users.push(user);
     }
     users.filter((el) => el.ready == true);
-    if (users.length == 4) {
+    if (users.length == 2) {
       match.status = "playing";
       ready = 1;
       await Match.updateOne({ matchNumber }, { $set: match });
@@ -74,7 +74,7 @@ let StartGame = async (data) => {
         users.push(user);
       });
       users.filterl((el) => el.ready == true);
-      if (users.length == 4) {
+      if (users.length == 2) {
         match.status = "playing";
         ready = 1;
         await Match.updateOne({ matchNumber }, { $set: match });
