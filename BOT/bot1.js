@@ -187,6 +187,7 @@ module.exports = (webSocket) => {
             //   Dota2.joinChat(lobby.game_name, 3);
             // }
             if (status != 0) {
+              console.log("status", status);
               switch (status) {
                 case 1: //Победа тьмы
                   console.log("Победа тьмы");
