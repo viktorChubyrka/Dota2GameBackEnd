@@ -51,8 +51,8 @@ router.get("/getAllReadyUsers", async (req, res) => {
 });
 
 router.post("/getUserData", async (req, res) => {
-  if (req.session.login && req.body.login) {
-    let userData = await userController.getUserData(req.session.login);
+  if (req.session && req.body.login) {
+    let userData = await userController.getUserData(req.body.login);
     res.send(userData);
   } else {
     let data = {
@@ -81,6 +81,7 @@ router.post("/changeName", async (req, res) => {
   }
 });
 router.post("/changeContactInfo", async (req, res) => {
+  log(req.session.login);
   if (req.session.login) {
     if (req.body.login != req.session.login) req.session.login = req.body.login;
     let newUserData = await userController.changeContactInfo(req.body);
