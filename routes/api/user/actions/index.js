@@ -51,6 +51,7 @@ router.get("/getAllReadyUsers", async (req, res) => {
 });
 
 router.post("/getUserData", async (req, res) => {
+  console.log(req.session.login, req.body.login);
   if (req.session && req.body.login) {
     let userData = await userController.getUserData(req.session.login);
     res.send(userData);
