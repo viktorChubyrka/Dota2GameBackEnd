@@ -17,7 +17,7 @@ const BOT = require("./BOT/bot1");
   wss.on("connection", function connection(ws) {
     webSocket(ws);
   });
-  BOT(wss);
+  // BOT(wss);
 
   httpServer.listen(config.PORT || 5000);
   console.log(`App listen ${config.PORT || 5000}`);

@@ -52,7 +52,7 @@ router.get("/getAllReadyUsers", async (req, res) => {
 
 router.post("/getUserData", async (req, res) => {
   if (req.session && req.body.login) {
-    let userData = await userController.getUserData(req.body.login);
+    let userData = await userController.getUserData(req.session.login);
     res.send(userData);
   } else {
     let data = {
