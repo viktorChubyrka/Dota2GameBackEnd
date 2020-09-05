@@ -18,7 +18,12 @@ async function loginUser(form) {
       data: { status: 404, message: "Wrong password" },
     };
   return {
-    data: { status: 200, message: "Logined", login },
+    data: {
+      status: 200,
+      message: "Logined",
+      login,
+      hasSteamConnected: userModel.steamID.name ? true : false,
+    },
   };
 }
 
