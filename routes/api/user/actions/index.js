@@ -20,7 +20,7 @@ const router = express.Router();
 
 var type = upload.single("file");
 router.post("/sendFile", type, async function (req, res) {
-  let path = "https://safe-inlet-79254.herokuapp.com/" + req.file.filename;
+  let path = "https://darewins.club/api/" + req.file.filename;
   await userController.saveProfilePhoto(path, req.body.login);
 });
 router.get("/getAllUsers", async (req, res) => {

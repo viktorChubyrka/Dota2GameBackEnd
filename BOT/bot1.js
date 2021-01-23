@@ -75,8 +75,8 @@ let StartGame = async (matchNumber) => {
 
 module.exports = async (webSocket) => {
 
-  Dota2.leavePracticeLobby();
-  Dota2.abandonCurrentGame();
+  //Dota2.leavePracticeLobby();
+  //Dota2.abandonCurrentGame();
 
   async function createLobby(matchNumber) {
     Dota2.abandonCurrentGame();
