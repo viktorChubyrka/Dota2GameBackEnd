@@ -123,7 +123,7 @@ module.exports = async (webSocket) => {
   }
 
   var onSteamLogOn = function onSteamLogOn(logonResp) {
-    
+
       if (logonResp.eresult == steam.EResult.OK) {
         steamFriends.setPersonaState(steam.EPersonaState.Busy);
         steamFriends.setPersonaName("Darevin's club");
@@ -368,6 +368,7 @@ module.exports = async (webSocket) => {
       console.log("Logged off from Steam.");
     },
     onSteamError = function onSteamError(error) {
+
       console.log("Connection closed by server.");
     };
   // steamFriends.on("message", function (source, message, type, chatter) {
@@ -435,7 +436,7 @@ module.exports = async (webSocket) => {
   //   }
   // });
   steamUser.on("updateMachineAuth", function (sentry, callback) {
-    fs.writeFileSync("sentry", sentry.bytes);
+    fs.writeFileSync("./sentry", sentry.bytes);
     console.log("sentryfile saved");
 
     callback({
@@ -451,14 +452,13 @@ module.exports = async (webSocket) => {
     logOnDetails.auth_code = global.config.steam_guard_code;
 
   try {
-    var sentry = fs.readFileSync("sentry");
+    var sentry = fs.readFileSync("./sentry");
     if (sentry.length) logOnDetails.sha_sentryfile = sentry;
   } catch (beef) {
     console.log("Cannot load the sentry. " + beef);
   }
 
   steamClient.connect();
-
   steamClient.on("connected", function () {
     steamUser.logOn(logOnDetails);
   });
