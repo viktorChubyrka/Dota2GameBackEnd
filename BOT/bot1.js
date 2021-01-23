@@ -54,7 +54,7 @@ let SetMatchResult = async (matchNumber, teamWin, players) => {
 };
 let StartGame = async (matchNumber) => {
   let a = await Match.findOne({matchNumber});
-  if(a.playersT1.length + a.playersT2.length == 1 ){
+  if(a.playersT1.length + a.playersT2.length == 10 ){
     currentMatch = a;
   currentMatch.status = "playing";
   await Match.updateOne({matchNumber},currentMatch);
@@ -249,7 +249,7 @@ module.exports = async (webSocket) => {
                   counter += 1;  console.log(counter);
                 }
               }
-              if(counter==1){isLobbyFool = true}
+              if(counter==10){isLobbyFool = true}
               if(isLobbyFool){
                 console.log('full');
                 Dota2.sendMessage(

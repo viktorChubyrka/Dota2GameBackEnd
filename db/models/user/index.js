@@ -26,7 +26,7 @@ const userSchema = new Schema({
   lastActive: Date,
   purse: {
     type: Number,
-    default: 0,
+    default: 100,
   },
   matches: {
     type: Array,
