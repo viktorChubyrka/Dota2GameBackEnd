@@ -25,7 +25,7 @@ let isLobbyFool = false;
 let canCheckMatchStart = false;
 let partyMessage = true;
 var ready;
-let SetMatchResult = async (matchNumber, teamWin, players) => {
+let SetMatchResult = async (matchNumber, teamWin, players,matchID) => {
   if (matchNumber) {
     console.log(1);
     let match = await Match.findOne({ matchNumber });
@@ -36,6 +36,7 @@ let SetMatchResult = async (matchNumber, teamWin, players) => {
       if (user) {
         if (players[i].team == teamWin) {
           match.status = "win";
+          match.matchNumber = matchID;
           user.matches.push(match);
           user.purse+=2;
           console.log(user);
@@ -43,6 +44,7 @@ let SetMatchResult = async (matchNumber, teamWin, players) => {
           user = {};
         } else {
           match.status = "lose";
+          match.matchNumber = matchID;
           user.matches.push(match);
           await User.updateOne({ login: user.login }, { $set: user });
           user = {};
@@ -316,7 +318,8 @@ module.exports = async (webSocket) => {
                   await SetMatchResult(
                     lobby.game_name.split("#")[1],
                     1,
-                    lobby.all_members
+                    lobby.all_members,
+                    lobby.match_id
                   );
                   break;
                 case 2: //Победа света
@@ -324,7 +327,8 @@ module.exports = async (webSocket) => {
                   await SetMatchResult(
                     lobby.game_name.split("#")[1],
                     0,
-                    lobby.all_members
+                    lobby.all_members,
+                    lobby.match_id
                   );
                   break;
               }
