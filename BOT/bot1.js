@@ -258,37 +258,37 @@ module.exports = async (webSocket) => {
                 console.log('full');
                 Dota2.sendMessage(
                   "Игра начнется через 5 секунд!.",
-                  lobby.game_name,
+                  "Lobby_"+lobby.lobby_id,
                   3
                 );
                 if(currentMatch.gameType=='Solo'){
                   Dota2.balancedShuffleLobby(()=>{console.log('Balanced')});
                   Dota2.sendMessage(
                   "Команды сбалансированы",
-                  lobby.game_name,
+                  "Lobby_"+lobby.lobby_id,
                   3
                 );
                 }else{
                   setTimeout(function(){
                     Dota2.sendMessage(
                   "Командa сил света: ",
-                  lobby.game_name,
+                  "Lobby_"+lobby.lobby_id,
                   3);
                   for (let i = 0; i < currentMatch.playersT1.length; i++) {
                     Dota2.sendMessage(
                   ""+currentMatch.playersT1[i].name,
-                  lobby.game_name,
+                  "Lobby_"+lobby.lobby_id,
                   3);
                     
                   }
                   Dota2.sendMessage(
                   "Командa сил тьмы: ",
-                  lobby.game_name,
+                  "Lobby_"+lobby.lobby_id,
                   3);
                   for (let i = 0; i < currentMatch.playersT1.length; i++) {
                     Dota2.sendMessage(
                   ""+currentMatch.playersT2[i].name,
-                  lobby.game_name,
+                  "Lobby_"+lobby.lobby_id,
                   3);
                     
                   }
