@@ -70,6 +70,7 @@ let StartGame = async (matchNumber) => {
     currentMatch.playersT2[i] = {...player.steamID,login:player.login};
   }
   console.log(currentMatch);
+  creatingLobby = true;
   }
 };
 
@@ -144,7 +145,7 @@ module.exports = async (webSocket) => {
                   if(!creatingLobby){
                     await StartGame(data.matchNumber)
                     createLobby(data.matchNumber);
-                    creatingLobby = true;
+                    
                     let logins = [...currentMatch.playersT1,...currentMatch.playersT2]
                      for (let i = 0; i < logins.length; i++) {
                         for (var key in clients) {
