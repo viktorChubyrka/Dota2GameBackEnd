@@ -9,7 +9,7 @@ const MongoStore = require("connect-mongo")(session);
 
 app.use(
   cors({
-    origin: "https://darewins.club",
+    origin: "http://localhost:8080",
     credentials: true,
   })
 );
