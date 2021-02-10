@@ -155,13 +155,10 @@ router.post("/newPassword", async (req, res) => {
   let data = await userController.newPassword(email, password, cpassword);
   res.send(data);
 });
-router.get("/payResult", async (req, res) => {
-  console.log(1);
-  console.log(req);
-});
+
 router.post("/payResult", async (req, res) => {
   console.log(2);
-  console.log(req);
+  console.log(req.body);
 });
 
 module.exports = router;
