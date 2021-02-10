@@ -156,10 +156,12 @@ router.post("/newPassword", async (req, res) => {
   res.send(data);
 });
 router.get("/payResult", async (req, res) => {
-  console.log(req.body);
+  console.log(1);
+  console.log(req);
 });
 router.post("/payResult", async (req, res) => {
-  console.log(req.body);
+  console.log(2);
+  console.log(req);
 });
 
 module.exports = router;
