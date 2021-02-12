@@ -55,6 +55,14 @@ async function sendWithdraw(data) {
         headers: { "Content-Type": "application/json" },
       }
     );
+    if (res.data.result) {
+      user.purse -= +amount;
+      user.transactions.push({
+        value: amount,
+        type: "withdraw",
+        date: Date.now(),
+      });
+    }
     return { status: res.data.result, message: res.data.message };
   } else {
     return { status: false, message: "Fail" };
