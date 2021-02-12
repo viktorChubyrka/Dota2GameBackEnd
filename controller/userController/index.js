@@ -7,6 +7,8 @@ const changeName = require("./changeName");
 const changeContactInfo = require("./changeContactInfo");
 const saveProfilePhoto = require("./saveProfilePhoto");
 const getUsers = require("./getUsers");
+const setAmount = require("./setAmount");
+const createWithdraw = require("./createWithdraw");
 
 module.exports = {
   login,
@@ -18,4 +20,6 @@ module.exports = {
   changeContactInfo,
   saveProfilePhoto,
   getUsers,
+  setAmount,
+  createWithdraw,
 };

@@ -157,8 +157,31 @@ router.post("/newPassword", async (req, res) => {
 });
 
 router.post("/payResult", async (req, res) => {
-  console.log(2);
+  if (req.body.status == "rejected") {
+  } else if (req.body.status == "success") {
+    await userController.setAmount(
+      req.body.description.split(" - ")[1],
+      req.body.shop_refund
+    );
+  }
+});
+router.post("/test_withdraw", async (req, res) => {
   console.log(req.body);
+  let data = await userController.createWithdraw.testWithdraw(req.body);
+  console.log(data);
+  res.send(data.data);
+});
+router.post("/test_pay_data", async (req, res) => {
+  console.log(req.body);
+  let data = await userController.createWithdraw.testPayData(req.body);
+  console.log(data);
+  res.send(data);
+});
+router.post("/send_withdraw", async (req, res) => {
+  console.log(req.body);
+  let data = await userController.createWithdraw.sendWithdraw(req.body);
+  console.log(data);
+  res.send(data);
 });
 
 module.exports = router;

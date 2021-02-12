@@ -28,6 +28,7 @@ const userSchema = new Schema({
     type: Number,
     default: 100,
   },
+  transactions: { type: Array, default: [] },
   matches: {
     type: Array,
     default: [],
