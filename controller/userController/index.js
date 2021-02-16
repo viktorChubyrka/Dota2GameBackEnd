@@ -9,6 +9,7 @@ const saveProfilePhoto = require("./saveProfilePhoto");
 const getUsers = require("./getUsers");
 const setAmount = require("./setAmount");
 const createWithdraw = require("./createWithdraw");
+const tutorialComplited = require("./tutorialComplited");
 
 module.exports = {
   login,
@@ -22,4 +23,5 @@ module.exports = {
   getUsers,
   setAmount,
   createWithdraw,
+  tutorialComplited,
 };
