@@ -1,8 +1,9 @@
 const User = require("../../db/models/user");
 
-async function tutorialComplited(login) {
+async function tutorialComplited(login, val) {
   let user = await User.findOne({ login });
-  user.tutorial = false;
+  user.tutorial = val;
+  console.log(user);
   await User.updateOne({ login }, user);
 }
 

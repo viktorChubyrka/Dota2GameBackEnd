@@ -184,7 +184,7 @@ router.post("/send_withdraw", async (req, res) => {
   res.send(data);
 });
 router.post("/tutorial_complited", async (req, res) => {
-  await userController.tutorialComplited(req.body.login);
+  await userController.tutorialComplited(req.body.login, req.body.val);
 });
 
 module.exports = router;
