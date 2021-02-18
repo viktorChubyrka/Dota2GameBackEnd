@@ -183,7 +183,8 @@ router.post("/send_withdraw", async (req, res) => {
   console.log(data);
   res.send(data);
 });
-router.post("/tutorial_complited", async (req, res) => {
+router.post("/tutorial", async (req, res) => {
+  console.log(req);
   await userController.tutorialComplited(req.body.login, req.body.val);
 });
 
