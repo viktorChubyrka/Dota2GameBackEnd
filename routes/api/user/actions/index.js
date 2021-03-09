@@ -161,7 +161,8 @@ router.post("/payResult", async (req, res) => {
   } else if (req.body.status == "success") {
     await userController.setAmount(
       req.body.description.split(" - ")[1],
-      req.body.shop_refund
+      req.body.shop_refund,
+      req.body.shop_order_id
     );
   }
 });
