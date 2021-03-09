@@ -447,6 +447,16 @@ let AddPartyNotification = async (login, friendLogin, partyId, matchID) => {
   let isInMatch = false;
   if (partyId) party = await Party.findOne({ _id: partyId });
   let user = await User.findOne({ login });
+  user.notifications.push({
+    date: new Date(),
+    friendLogin,
+    message: "Приглашение в лобби отправлено",
+    type: "partyInviteSendet",
+    partyID: partyId,
+    new: true,
+    matchID,
+  });
+  await User.updateOne({ login }, { $set: user });
   let friend = await User.findOne({ login: friendLogin });
   let matches = await Match.find();
   matches.forEach((el) => {
@@ -480,7 +490,9 @@ let AddPartyNotification = async (login, friendLogin, partyId, matchID) => {
         matchID,
       });
     }
+
     await User.updateOne({ login: friendLogin }, { $set: friend });
+
     await Party.updateOne({ _id: partyId }, { $set: party });
     return partyId;
   } else if (!friend.partyID && !isInMatch) {

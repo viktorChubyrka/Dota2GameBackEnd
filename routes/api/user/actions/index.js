@@ -155,7 +155,12 @@ router.post("/newPassword", async (req, res) => {
   let data = await userController.newPassword(email, password, cpassword);
   res.send(data);
 });
-
+router.post("/deletePhoto", async (req, res) => {
+  let { login } = req.body;
+  console.log(login);
+  let data = await userController.deletePhoto(login);
+  res.send(data);
+});
 router.post("/payResult", async (req, res) => {
   if (req.body.status == "rejected") {
   } else if (req.body.status == "success") {
