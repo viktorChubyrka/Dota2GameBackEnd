@@ -48,7 +48,7 @@ let SetMatchResult = async (
             match.status = "win";
             match.matchNumber = matchID;
             user.matches.push(match);
-            user.purse += 2;
+            user.purse += 1.8;
             await User.updateOne({ login: user.login }, { $set: user });
             user = {};
           }
@@ -87,7 +87,7 @@ let SetMatchResult = async (
 };
 let StartGame = async (matchNumber) => {
   let a = await Match.findOne({ matchNumber });
-  if (a.playersT1.length + a.playersT2.length == 10) {
+  if (a.playersT1.length + a.playersT2.length == 2) {
     currentMatch = a;
     currentMatch.status = "playing";
     await Match.updateOne({ matchNumber }, currentMatch);
@@ -300,7 +300,7 @@ module.exports = async (webSocket) => {
                     console.log(counter);
                   }
                 }
-                if (counter == 10) {
+                if (counter == 2) {
                   isLobbyFool = true;
                 }
                 if (isLobbyFool) {
