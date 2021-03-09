@@ -998,6 +998,10 @@ module.exports = async (ws) => {
   });
   ws.on("close", async function () {
     console.log("соединение закрыто " + id);
+    setTimeout(function () {
+      console.log("connecting..");
+      connect();
+    }, 1000);
     let login = clients[id].login;
     let user = await User.findOne({ login });
     user.ready = false;
