@@ -45,7 +45,7 @@
 		"steam-resources": "github:seishun/node-steam-resources",
 		"uuid": "3.3.2",
 		"winston": "3.2.1",
-		"ws": "^7.3.1"
+		"ws": "^7.4.6"
 	},
 	"devDependencies": {
 		"jsdoc-to-markdown": "^4.0.1",
