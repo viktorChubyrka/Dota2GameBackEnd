@@ -30,7 +30,7 @@
 		"jwt-simple": "0.5.6",
 		"lodash": "latest",
 		"lodash-express": "0.1.0",
-		"log4js": "^6.3.0",
+		"log4js": "^6.4.0",
 		"long": "^4.0.0",
 		"merge": "^1.2.1",
 		"moment": "2.24.0",
