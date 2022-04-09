@@ -33,7 +33,7 @@
 		"log4js": "^6.3.0",
 		"long": "^4.0.0",
 		"merge": "^1.2.1",
-		"moment": "2.24.0",
+		"moment": "2.29.2",
 		"mongodb": "3.5.2",
 		"mongoose": "^5.9.10",
 		"morgan": "latest",
